@@ -64,9 +64,9 @@ public class AIPlayer implements UnoPlayer //interface
 
     public int play(List<Card> hand, Card upCard, Color calledColor, GameState state){
         //  pass Environment Agent CPEto GameState and PriorExperience agents
-        EnvironmentAgent ea = new EnvironmentAgent(upCard, calledColor, state);
-        ArrayList<Double> priorExpWeights = this.priorExp.ratePlayableCard();
-
+        Environment env = new Environment(upCard, calledColor, state);
+        
+        List<Double> priorExpWeights = this.priorExp.ratePlayableCard();
         List<Double> gameStateWeights = this.gameSt.ratePlayableCard(hand, state);
         int idx = this.makeDecision(priorExpWeights, gameStateWeights, peWeight, gsWeight);
         return idx;
