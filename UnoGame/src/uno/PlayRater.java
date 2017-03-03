@@ -1,6 +1,5 @@
 package uno;
 
-import java.awt.Color;
 import java.util.List;
 
 /**
@@ -73,8 +72,8 @@ public class PlayRater
     
     /**
      * Determines if the card that was selected given the environment and the
-     * player's hand, with respect to the environment on the next turn, was
-     * a good play. A play's "goodness" is measured using many metrics.
+     * player's hand, with respect to the environment & hand on the next turn,
+     * was a good play. A play's "goodness" is measured using many metrics.
      * 
      * This should be called as follows: initialize a PR on a turn with the
      * turn's data, then call this on the next turn with that Environment and

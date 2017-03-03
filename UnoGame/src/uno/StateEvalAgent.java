@@ -193,7 +193,7 @@ public class StateEvalAgent {
         return out;
     }
     
-    List<Double> ratePlayableCard(List<Card> hand, GameState state)
+    List<Double> ratePlayableCards(List<Card> hand, GameState state)
     {
         List<Double> out = new ArrayList<>();
         

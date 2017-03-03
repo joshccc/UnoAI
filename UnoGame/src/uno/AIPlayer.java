@@ -13,8 +13,9 @@ public class AIPlayer implements UnoPlayer //interface
 
 
     //Constructor
-    public AIPlayer(int peWeight, int gsWeight){
-            priorExp = new PriorExperienceAgent();
+    public AIPlayer(int peWeight, int gsWeight, int peRecycleVal,
+        String knowledgeFileName){
+            priorExp = new PriorExperienceAgent(knowledgeFileName, peRecycleVal);
             gameSt = new StateEvalAgent();
             this.gsWeight = gsWeight;
             this.peWeight = peWeight;
@@ -66,8 +67,8 @@ public class AIPlayer implements UnoPlayer //interface
         //  pass Environment Agent CPEto GameState and PriorExperience agents
         Environment env = new Environment(upCard, calledColor, state);
         
-        List<Double> priorExpWeights = this.priorExp.ratePlayableCard();
-        List<Double> gameStateWeights = this.gameSt.ratePlayableCard(hand, state);
+        List<Double> priorExpWeights = this.priorExp.ratePlayableCards(env, hand);
+        List<Double> gameStateWeights = this.gameSt.ratePlayableCards(hand, state);
         int idx = this.makeDecision(priorExpWeights, gameStateWeights, peWeight, gsWeight);
         return idx;
     }
