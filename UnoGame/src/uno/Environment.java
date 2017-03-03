@@ -18,9 +18,9 @@ public class Environment
             this.upCard = upCard;
             this.calledColor = calledColor;
             this.state = state;
-
+            
             cardsInDeck--;
-            cardsPlayed.add(upCard);
+            //cardsPlayed.add(upCard);
     }
 
 
@@ -35,7 +35,22 @@ public class Environment
     public ArrayList<Card> getCardsPlayed(){            //Returns list of cards already played.
             return this.cardsPlayed;
     }
-
+    
+    double checkPlayable(Card c)
+    {
+        double out = 0;
+        
+        if (c.getColor() == upCard.getColor())
+        {
+            out++;
+        }
+        else if (c.getNumber() == upCard.getNumber())
+        {
+            out++;
+        }
+        
+        return out;
+    }
     /**
      * Determines the ratio of the cards of the given color that have not been
      * played and are not in the player's hand. For example, if the deck has 25
@@ -47,8 +62,88 @@ public class Environment
      */
     public double countColor(List<Card> hand, UnoPlayer.Color color)
     {
-        //todo
-        return 0.0;
+        double out = 0;
+        List<Card> list = state.getPlayedCards();
+        
+        for (int i = 0; i < list.size(); i++)
+        {
+            Card c = list.get(i);
+            
+            if (c.getColor() == color)
+            {
+                out++;
+            }
+        }
+        
+        for (int i = 0; i < hand.size(); i++)
+        {
+            if (hand.get(i).getColor() == color)
+            {
+                out++;
+            }
+        }
+        // 25 is the number of cards of each color
+        out = out / 25;
+        
+        return out;
+    }
+    
+    double countNumber(List<Card> hand, int number)
+    {
+        double out = 0;
+        
+        List<Card> list = state.getPlayedCards();
+        
+        for (int i = 0; i < list.size(); i++)
+        {
+            Card c = list.get(i);
+            
+            if (c.getNumber() == number)
+            {
+                out++;
+            }
+        }
+        
+        // the 4 is the number of colors
+        if (number == 0)
+        {
+            out = out / Deck.NUMBER_OF_DUP_ZERO_CARDS * 4;
+        }
+        else
+        {
+            out = out / Deck.NUMBER_OF_DUP_REGULAR_CARDS * 4;
+        }
+        
+        return out;
+    }
+    
+    double countSpecial(List<Card> hand, UnoPlayer.Rank rank)
+    {
+        double out = 0;
+        
+        List<Card> list = state.getPlayedCards();
+        
+        for (int i = 0; i < list.size(); i++)
+        {
+            Card c = list.get(i);
+            
+            if (c.getRank() == rank)
+            {
+                out++;
+            }
+        }
+        
+        for (int i = 0; i < hand.size(); i++)
+        {
+            if (hand.get(i).getRank() == rank)
+            {
+                out++;
+            }
+        }
+        // 25 is the number of cards of each color
+        out = out / Deck.NUMBER_OF_DUP_SPECIAL_CARDS;
+        
+        return out;
     }
     
     /**

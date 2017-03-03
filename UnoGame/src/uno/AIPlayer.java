@@ -27,26 +27,38 @@ public class AIPlayer implements UnoPlayer //interface
     //GE .2 .1 1 .8 * weight decided by us (int)
 
     //returns index of where the max weight is in ArrayList. Position correlates to position of card in hand.
-    private int getMaxWeightIdx(ArrayList<Double> totalWeightedValues){
+   /* private int getMaxWeightIdx(ArrayList<Double> totalWeightedValues){
             double maximum = totalWeightedValues.get(0);
+            int index = 0;
             for (int i = 1; i < totalWeightedValues.size(); i++){
                     if (totalWeightedValues.get(i) > maximum)
                             maximum = totalWeightedValues.get(i);
+                            index = i;
             }
 
-            return totalWeightedValues.indexOf(maximum);
-    }
+            //return totalWeightedValues.indexOf(maximum);
+            return index;
+    }*/
+    private int getMaxWeightIdx(ArrayList<Double> totalWeightedValues){
+            int index = 0;
+            for (int i = 1; i < totalWeightedValues.size(); i++){
+                    if (totalWeightedValues.get(i) > totalWeightedValues.get(index))
+                            index = i;
+            }
 
+            //return totalWeightedValues.indexOf(maximum);
+            return index;
+    }
     //multiplies each card's value with a weight, then adds them together and returns index of where max weighted card lies.
     public int makeDecision(List<Double> peWeights, List<Double> gsWeights, int peWeight, int gsWeight){
         ArrayList<Double> peWeightedValues = new ArrayList<Double>();
         ArrayList<Double> gsWeightedValues = new ArrayList<Double>();
         ArrayList<Double> totalWeightedValues = new ArrayList<Double>();
 
-        for (Double pe: peWeights){
+      /*  for (Double pe: peWeights){
                 pe = pe * peWeight;
                 peWeightedValues.add(pe);
-        }
+        }*/
 
         for (Double gs: gsWeights){
                 gs = gs * gsWeight;
@@ -54,7 +66,8 @@ public class AIPlayer implements UnoPlayer //interface
         }
 
         for(int i = 0; i < gsWeights.size(); i++){
-                double total = peWeightedValues.get(i) + gsWeightedValues.get(i);
+               // double total = peWeightedValues.get(i) + gsWeightedValues.get(i);
+                double total = gsWeightedValues.get(i);
                 totalWeightedValues.add(total);
         }
 
@@ -67,7 +80,7 @@ public class AIPlayer implements UnoPlayer //interface
         Environment env = new Environment(upCard, calledColor, state);
         
         List<Double> priorExpWeights = this.priorExp.ratePlayableCard();
-        List<Double> gameStateWeights = this.gameSt.ratePlayableCard(hand, state);
+        List<Double> gameStateWeights = this.gameSt.ratePlayableCard(hand, env);
         int idx = this.makeDecision(priorExpWeights, gameStateWeights, peWeight, gsWeight);
         return idx;
     }

@@ -59,7 +59,12 @@ public class GraphicalUnoSimulation extends JFrame {
         playerClasses = new ArrayList<String>();
 
         loadPlayerData();
-
+        
+        playerNames.remove(0);
+        playerClasses.remove(0);
+        playerNames.add(0, "AIPlayer");
+        playerClasses.add(0, "AIPlayer");
+        
         this.numGames = numGames;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

@@ -25,8 +25,18 @@ public class Hand {
      */
     public Hand(String unoPlayerClassName, String playerName) {
         try {
-            player = (UnoPlayer)
+            if (unoPlayerClassName == "AIPlayer")
+            {
+                System.out.println("adding AIPlayer");
+                player = new AIPlayer(0,1);
+            }
+            else
+            {
+                System.out.println("adding " + unoPlayerClassName);
+                player = (UnoPlayer)
                 Class.forName(unoPlayerClassName).newInstance();
+            }
+            
         }
         catch (Exception e) {
             System.out.println("Problem with " + unoPlayerClassName + ".");
