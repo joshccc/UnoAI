@@ -10,12 +10,12 @@ public class AIPlayer implements UnoPlayer //interface
     int peWeight;
     int gsWeight;
     String knowledgefile;	//for PriorExperience, pass to him
+    static final int PE_RECYCLE_VAL = 1000000; //for PriorExperience
 
 
     //Constructor
-    public AIPlayer(int peWeight, int gsWeight, int peRecycleVal,
-        String knowledgeFileName){
-            priorExp = new PriorExperienceAgent(knowledgeFileName, peRecycleVal);
+    public AIPlayer(int peWeight, int gsWeight, String knowledgeFileName){
+            priorExp = new PriorExperienceAgent(knowledgeFileName, PE_RECYCLE_VAL);
             gameSt = new StateEvalAgent();
             this.gsWeight = gsWeight;
             this.peWeight = peWeight;
@@ -70,6 +70,7 @@ public class AIPlayer implements UnoPlayer //interface
         List<Double> priorExpWeights = this.priorExp.ratePlayableCards(env, hand);
         List<Double> gameStateWeights = this.gameSt.ratePlayableCards(hand, state);
         int idx = this.makeDecision(priorExpWeights, gameStateWeights, peWeight, gsWeight);
+        this.priorExp.learn(env, hand, hand.get(idx));
         return idx;
     }
 
@@ -85,6 +86,7 @@ public class AIPlayer implements UnoPlayer //interface
     @Override
     public Color callColor(List<Card> hand)
     {
+        //TODO
         UnoPlayer.Color out = UnoPlayer.Color.RED;
 
         return out;

@@ -25,7 +25,7 @@ public class PriorExperienceAgent
         //this one isn't a part of the turn.
         //it's used to track how many times this turn comes up as similar
         //to other turns.
-        int numTimesSimilar;
+        long numTimesSimilar;
         
         /**
          * Sets all passed values to the instances.
@@ -52,9 +52,14 @@ public class PriorExperienceAgent
     private HashMap<PriorTurn, Double> playKnowledge;
     
     //the maximum number of mappings to hold at a time. When this number of
-    //turn mappings is reached all entries with the lowest number of
-    //similarities are removed from the table, to make room for new entries.
-    private int recycleNum;
+    //turn mappings is reached some entries are deleted to make room for entries
+    //that will potentially serve more purpose. The number of entries that are
+    //removed scales logarithmically with the number of entries before
+    //recycling triggers.
+    private final int recycleNum;
+    
+    //Playrating struture.
+    private PlayRater rater;
     
     /**
      * Constructor. Takes in the name of the knowledge file. This file
@@ -69,6 +74,7 @@ public class PriorExperienceAgent
     {
         this.knowledgeFile = knowledgeFile;
         this.recycleNum = recycleNum;
+        this.rater = null;
         buildKnowledgeTable();
     }
     
@@ -121,20 +127,28 @@ public class PriorExperienceAgent
         //in terms of environment and hand
         List<PriorTurn> similarTurns = getSimilarTurns(currEnv, hand);
         
-        //look atr specific criteria for each card
+        //look at specific criteria for each card
         for(Card card : playableCards)
         {
             //get all similar environments where the card was played in that
             //environment
-            List<PriorTurn> almostExactPlays = 
-                getAlmostExactPlays(similarTurns, playableCards);
+            List<PriorTurn> almostExact = 
+                getAlmostExactTurns(similarTurns, card);
             //get all similar environments where the card was in the hand of
-            //that environment, but it was not played
-            List<PriorTurn> wasPlayableSituations = 
-                getWasPlayableSituations(similarTurns, playableCards);
+            //that environment, would have been playable, but it was not played
+            List<PriorTurn> wasPlayable = 
+                getWasPlayableTurns(similarTurns, card);
+            //get all similar environments where the card is not played, is not
+            //in the hand, but would have been playable if it was
+            List<PriorTurn> couldHavePlayed =
+                getCouldHavePlayedTurns(similarTurns, card);
+            
+            updateUses(almostExact, wasPlayable, couldHavePlayed);
+            
             //use this to determine the weight of that card
-            double weight = calculateWeight(almostExactPlays,
-                wasPlayableSituations, card);
+            double weight = calculateWeight
+                (almostExact, wasPlayable, couldHavePlayed, card);
+            
             weights.set(hand.indexOf(card), weight);
         }
         
@@ -143,13 +157,24 @@ public class PriorExperienceAgent
     }
     
     /**
-     * Gets all cards in the hand that are currently playable.
-     * 
-     * @param env the environment
-     * @param hand the hand
-     * 
-     * @return all cards in the hand that are currently playable
+     * Updates the usage on the passed PriorTurns.
+     * 3 different lists are generated with varying levels of similarity. The
+     * exact match list is a better choice as compared to the was playable list, 
+     * which is a better choice than the hypothetically playable list.
+     * As such, their usabilities are considered differently.
      */
+    private void updateUses(List<PriorTurn> almostExact, 
+        List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed)
+    {
+        //for each in almostExact
+            //add 3 uses
+        //for each in wasPlayable
+            //add two uses
+        //for each in couldHave
+            //add 1 use
+    }
+    
+    
     private List<Card> getPlayableCards(Environment env, List<Card> hand)
     {
         //TODO
@@ -162,24 +187,97 @@ public class PriorExperienceAgent
         return null;
     }
     
-    private List<PriorTurn> getAlmostExactPlays(List<PriorTurn> similarTurns,
-        List<Card> playableCards)
+    private List<PriorTurn> getAlmostExactTurns
+        (List<PriorTurn> similarTurns, Card card)
     {
         //TODO
         return null;
     }
-    
-    private List<PriorTurn> getWasPlayableSituations
-        (List<PriorTurn> similarTurns, List<Card> playableCards)
+      
+    private List<PriorTurn> getCouldHavePlayedTurns
+        (List<PriorTurn> similarTurns, Card card)
     {
         //TODO
         return null;
     }
         
-    private double calculateWeight(List<PriorTurn> almostExactPlays,
-        List<PriorTurn> wasPlayableSituations, Card card)
+    
+    private List<PriorTurn> getWasPlayableTurns
+        (List<PriorTurn> similarTurns, Card card)
+    {
+        //TODO
+        return null;
+    }
+        
+    private double calculateWeight(List<PriorTurn> almostExact,
+        List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed, 
+        Card card)
     {
         //TODO
         return 0.0;
+    }
+    
+    /**
+     * Learns from the previous game state, as compared to now, how good of
+     * a play the card chosen on the prior turn was. This method needs to be
+     * called when the AIPlayer has selected a card to play.
+     * 
+     * @param env the current Environment
+     * @param hand the current hand
+     * @param played the card that was selected to be played
+     */
+    public void learn(Environment env, List<Card> hand, Card played)
+    {
+        //don't learn from nonexistent turns
+        if(this.rater != null)
+        {
+            PriorTurn prevTurn = new PriorTurn(this.rater.getPrevEnvironment(),
+                this.rater.getHand(), this.rater.getPlayedCard());
+            double playRating = this.rater.ratePlay(hand, env);
+            this.playKnowledge.put(prevTurn, playRating);
+            cleanKnowledgeMap();
+            writeKnowledgeFile();
+        }
+        
+        //set the PlayRater so that when it's the AIPlayer's turn again, he's
+        //ready to learn
+        this.rater = new PlayRater(env, hand, played);
+    }
+    
+    /**
+     * Cleans up the knowledge map if it contains too many entries.
+     * Removes all entries in the knowledge map with a low usage rate. The
+     * number of entries removed is scaled logarithmically with the number of
+     * entries to hold before recycling.
+     */
+    private void cleanKnowledgeMap()
+    {
+        if(this.playKnowledge.size() > this.recycleNum)
+        {
+            int numEntriesToDelete = (int) Math.floor(Math.log10(recycleNum));
+            clearEntriesFromKnowledgeMap(numEntriesToDelete);
+            writeKnowledgeFile();
+        }
+    }
+    
+    /**
+     * Clears the specified number of entries from the knowledge map. The
+     * entries that are selected are the entries with the lowest usage.
+     */
+    private void clearEntriesFromKnowledgeMap(int numEntriesToDelete)
+    {
+        int currUsageTimes = 0;
+        
+        while(numEntriesToDelete >= 0)
+        {
+            //get all PriorTurns in the map with currUsageTimes uses
+            //if list.size() > numEntriesToDelete
+                //delete the 1st numEntriesToDelete entries in the map
+                //numEntriesToDelete = 0
+            //else
+                //numEntriesToDelete -= list.size()
+                //delete all entries in the list from the map
+            //currUsageTimes++
+        }
     }
 }
