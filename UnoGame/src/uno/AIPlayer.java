@@ -20,22 +20,16 @@ public class AIPlayer implements UnoPlayer //interface
             this.gsWeight = gsWeight;
             this.peWeight = peWeight;
     }
-
-    //alec returns a list of doubles for weight of card from previousExp
-    //tarrant returns a list of doubles for weight of card from state
-    //ints are to be passed in
-    //PE 0 ,2 ,3 1 * weight decided by us (int)
-    //GE .2 .1 1 .8 * weight decided by us (int)
-
-    //returns index of where the max weight is in ArrayList. Position correlates to position of card in hand.
+    
     private int getMaxWeightIdx(ArrayList<Double> totalWeightedValues){
-            double maximum = totalWeightedValues.get(0);
+            int index = 0;
             for (int i = 1; i < totalWeightedValues.size(); i++){
-                    if (totalWeightedValues.get(i) > maximum)
-                            maximum = totalWeightedValues.get(i);
+                    if (totalWeightedValues.get(i) > totalWeightedValues.get(index))
+                            index = i;
             }
 
-            return totalWeightedValues.indexOf(maximum);
+            //return totalWeightedValues.indexOf(maximum);
+            return index;
     }
 
     //multiplies each card's value with a weight, then adds them together and returns index of where max weighted card lies.
@@ -44,10 +38,12 @@ public class AIPlayer implements UnoPlayer //interface
         ArrayList<Double> gsWeightedValues = new ArrayList<Double>();
         ArrayList<Double> totalWeightedValues = new ArrayList<Double>();
 
-        for (Double pe: peWeights){
+        //currently omitted b/c PEA doesn't work yet*/
+        
+        /*for (Double pe: peWeights){
                 pe = pe * peWeight;
                 peWeightedValues.add(pe);
-        }
+        }*/
 
         for (Double gs: gsWeights){
                 gs = gs * gsWeight;
@@ -55,7 +51,8 @@ public class AIPlayer implements UnoPlayer //interface
         }
 
         for(int i = 0; i < gsWeights.size(); i++){
-                double total = peWeightedValues.get(i) + gsWeightedValues.get(i);
+                double total = /*peWeightedValues.get(i) +*/
+                    gsWeightedValues.get(i);
                 totalWeightedValues.add(total);
         }
 
@@ -68,21 +65,12 @@ public class AIPlayer implements UnoPlayer //interface
         Environment env = new Environment(upCard, calledColor, state);
         
         List<Double> priorExpWeights = this.priorExp.ratePlayableCards(env, hand);
-        List<Double> gameStateWeights = this.gameSt.ratePlayableCards(hand, state);
+        List<Double> gameStateWeights = this.gameSt.ratePlayableCards(hand, env);
         int idx = this.makeDecision(priorExpWeights, gameStateWeights, peWeight, gsWeight);
         this.priorExp.learn(env, hand, hand.get(idx));
         return idx;
     }
-
-    /**
-       * <p>This method will be called when you have just played a
-       * wild card, and is your way of specifying which color you want to 
-       * change it to.</p>
-       *
-       * <p>You must return a valid Color value from this method. You must
-       * not return the value Color.NONE under any circumstances.</p>
-       */
-
+    
     @Override
     public Color callColor(List<Card> hand)
     {
