@@ -1,6 +1,7 @@
 
 package uno;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -11,7 +12,7 @@ import java.util.ArrayList;
  * implementer of the UnoPlayer class.</p>
  * @since 1.0
  */
-public class Hand {
+public class Hand implements Serializable {
 
     private ArrayList<Card> cards;
     private UnoPlayer player;

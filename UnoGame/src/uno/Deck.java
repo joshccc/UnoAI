@@ -1,6 +1,7 @@
 
 package uno;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -14,7 +15,7 @@ import java.util.Random;
  * content of the deck.</p>
  * @since 1.0
  */
-public class Deck {
+public class Deck implements Serializable {
 
     /**
      * The number of non-zero number cards of each suit in the deck.

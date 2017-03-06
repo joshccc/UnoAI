@@ -1,5 +1,12 @@
 package uno;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +24,7 @@ public class PriorExperienceAgent
      * Inner class to store what happened on a previous turn,
      * e.g. what card was played given the Cards that were in the hand.
      */
-    private class PriorTurn
+    private class PriorTurn implements Serializable
     {
         final Environment turnEnv;
         final List<Card> hand;
@@ -84,22 +91,58 @@ public class PriorExperienceAgent
      */
     private void buildKnowledgeTable()
     {
-        //make a file object on knowledgeFile
-        //if the file exists
-            //deserialize the info in it
-            //set this to the knowledge table
-        //else make the file
+        try
+        {
+            File file = new File(this.knowledgeFile);
+            if(file.exists())
+            {
+                FileInputStream knowledge = 
+                    new FileInputStream(this.knowledgeFile);
+                ObjectInputStream inStream = new ObjectInputStream(knowledge);
+                this.playKnowledge = 
+                    (HashMap<PriorTurn, Double>) inStream.readObject();
+                inStream.close();
+                knowledge.close();
+            }
+            else
+            {
+                file.createNewFile();
+            }
+        }
+        catch(IOException | ClassNotFoundException ex)
+        {
+            System.out.println("Problem with building knowledge table");
+            ex.printStackTrace();
+            System.exit(1);
+        }
     }
     
     /**
      * Writes the knowledge table to the knowledge file.
+     * 
+     * Note to self: may make this run on a Thread to speed things up
      */
     private void writeKnowledgeFile()
     {
-        //destroy the knowledge file
-        //make a new knowledge file
-        //serialize the knowledge table
-        //write it to the file
+        try
+        {
+            File file = new File(this.knowledgeFile);
+            file.delete();
+            file.createNewFile();
+        
+            FileOutputStream knowledge = 
+                new FileOutputStream(this.knowledgeFile);
+            ObjectOutputStream outStream = new ObjectOutputStream(knowledge);
+            outStream.writeObject(this.playKnowledge);
+            outStream.close();
+            knowledge.close();
+        }
+        catch(IOException ex)
+        {
+            System.out.println("Problem with writing knowledge table");
+            ex.printStackTrace();
+            System.exit(1);
+        }
     }
     
     /**
@@ -115,10 +158,19 @@ public class PriorExperienceAgent
     public List<Double> ratePlayableCards(Environment currEnv, List<Card> hand)
     {
         List<Double> weights = new ArrayList<Double>();
-        //assume no card will be playable
+        
+        //assume playable cards are terrible, and unplayable cards are
+        //unplayable. Weights determined later.
         for (int i = 0; i < hand.size(); i++)
         {
-            weights.set(i, 0.0);
+            if(currEnv.checkPlayable(hand.get(i)) > 0)
+            {
+                weights.set(i, 0.0);
+            }
+            else
+            {
+                weights.set(i, -1.0);
+            }
         }
         
         //get all currently playable cards
@@ -166,19 +218,42 @@ public class PriorExperienceAgent
     private void updateUses(List<PriorTurn> almostExact, 
         List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed)
     {
-        //for each in almostExact
-            //add 3 uses
-        //for each in wasPlayable
-            //add two uses
-        //for each in couldHave
-            //add 1 use
+        for(PriorTurn turn : almostExact)
+        {
+            turn.numTimesSimilar += 3;
+        }
+        for(PriorTurn turn : wasPlayable)
+        {
+            turn.numTimesSimilar += 2;
+        }
+        for(PriorTurn turn : couldHavePlayed)
+        {
+            turn.numTimesSimilar += 1;
+        }
+        
+        writeKnowledgeFile();
     }
     
-    
+    /**
+     * Returns a sublist of the hand containing all the playable cards.
+     * 
+     * @param env the current environment
+     * @param hand the hand
+     * @return all playable cards in the hand
+     */
     private List<Card> getPlayableCards(Environment env, List<Card> hand)
     {
-        //TODO
-        return null;
+        List<Card> out = new ArrayList<Card>();
+        
+        for(Card card : hand)
+        {
+            if(env.checkPlayable(card) > 0.0)
+            {
+                out.add(card);
+            }
+        }
+        
+        return out;
     }
     
     private List<PriorTurn> getSimilarTurns(Environment env, List<Card> hand)
@@ -187,27 +262,83 @@ public class PriorExperienceAgent
         return null;
     }
     
+    /**
+     * Gets all similar turns where the card being considered was in fact
+     * played in that environment.
+     * 
+     * @param similarTurns list of all similar turns
+     * @param card the card being considered
+     * @return all similar turns described above
+     */
     private List<PriorTurn> getAlmostExactTurns
         (List<PriorTurn> similarTurns, Card card)
     {
-        //TODO
-        return null;
+        List<PriorTurn> almost = new ArrayList<PriorTurn>();
+        
+        for(PriorTurn turn : similarTurns)
+        {
+            if(turn.played.equals(card))
+            {
+                almost.add(turn);
+            }
+        }
+        
+        return almost;
     }
-      
+        
+    /**
+     * Gets all similar turns where the card being considered was playable in
+     * that environment and in the hand of that environment, but was not
+     * chosen.
+     * 
+     * @param similarTurns list of all similar turns
+     * @param card the card being considered
+     * @return all similar turns described above
+     */
+    private List<PriorTurn> getWasPlayableTurns
+    (List<PriorTurn> similarTurns, Card card)
+    {
+        List<PriorTurn> wasPlayable = new ArrayList<PriorTurn>();
+        
+        for(PriorTurn turn : similarTurns)
+        {
+            if(!turn.played.equals(card) && turn.hand.contains(card) &&
+                turn.turnEnv.checkPlayable(card) > 0.0)
+            {
+                wasPlayable.add(turn);
+            }
+        }
+        
+        return wasPlayable;
+    }
+    
+    /**
+     * Gets all similar turns where if the card being considered was in hand on
+     * that turn, then it could have been played.
+     * 
+     * @param similarTurns list of all similar turns
+     * @param card the card being considered
+     * @return  list of similar turns described above
+     */
     private List<PriorTurn> getCouldHavePlayedTurns
         (List<PriorTurn> similarTurns, Card card)
     {
-        //TODO
-        return null;
+        List<PriorTurn> ifOnly = new ArrayList<PriorTurn>();
+        
+        for(PriorTurn turn : similarTurns)
+        {
+            if(!turn.played.equals(card) && !turn.hand.contains(card) &&
+                turn.turnEnv.checkPlayable(card) > 0.0)
+            {
+                ifOnly.add(turn);
+            }
+        }
+        
+        return ifOnly;
     }
         
     
-    private List<PriorTurn> getWasPlayableTurns
-        (List<PriorTurn> similarTurns, Card card)
-    {
-        //TODO
-        return null;
-    }
+
         
     private double calculateWeight(List<PriorTurn> almostExact,
         List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed, 

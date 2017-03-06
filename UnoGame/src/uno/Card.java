@@ -1,6 +1,8 @@
 
 package uno;
 
+import java.io.Serializable;
+
 /**
  * <p>A Card in an Uno deck. Each Card knows its particular type, which is
  * comprised of a 3-tuple (color, rank, number). Not all of these values
@@ -13,7 +15,7 @@ package uno;
  * effect it has on the game state, etc.)</p>
  * @since 1.0
  */
-public class Card {
+public class Card implements Serializable {
 
     /**
      * For terminals that support it, setting PRINT_IN_COLOR to true will
@@ -260,4 +262,28 @@ public class Card {
         return number;
     }
 
+    /**
+     * Determines equality of the passed card to this one.
+     * 
+     * @param other Card to compare to this one
+     * @return true if they are equal, false if not
+     */
+    @Override
+    public boolean equals(Object other)
+    {
+        boolean out;
+        
+        if(other instanceof Card)
+        {
+            Card otherCard = (Card) other;
+            out = this.color == otherCard.color &&
+                this.rank == otherCard.rank &&
+                this.number == otherCard.number;
+        }
+        else
+        {
+            out = false;
+        }
+        return out;
+    }
 }

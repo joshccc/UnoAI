@@ -1,6 +1,8 @@
 
 package uno;
 
+import java.io.Serializable;
+
 /**
  * <p>A Scoreboard is a simple container for player names and their current
  * scores. It can do the obvious things like increment someone's score,
@@ -8,7 +10,7 @@ package uno;
  * end of the game.</p>
  * @since 1.0
  */
-public class Scoreboard {
+public class Scoreboard implements Serializable {
 
     private String playerList[];
     private int scores[];

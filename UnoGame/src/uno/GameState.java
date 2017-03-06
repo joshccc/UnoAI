@@ -1,6 +1,7 @@
 
 package uno;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -13,7 +14,7 @@ import java.util.List;
  * access.</p>
  * @since 2.0
  */
-public class GameState {
+public class GameState implements Serializable {
 
     private Game theGame;
     private int[] numCardsInHandsOfUpcomingPlayers;

@@ -1,6 +1,7 @@
 
 package uno;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -17,7 +18,7 @@ import java.util.ArrayList;
  * aspects of the game's state.</p>
  * @since 1.0
  */
-public class Game {
+public class Game implements Serializable {
 
     /**
      * The number of cards each player will be dealt at start of game.

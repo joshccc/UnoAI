@@ -1,9 +1,10 @@
 package uno;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Environment
+public class Environment implements Serializable
 {
 
     private Card upCard;
@@ -40,7 +41,8 @@ public class Environment
     {
         double out = 0;
         
-        if (c.getColor() == upCard.getColor())
+        if (c.getColor() == upCard.getColor() || c.getColor() == 
+            UnoPlayer.Color.NONE)
         {
             out++;
         }
