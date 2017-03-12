@@ -63,7 +63,7 @@ public class PlayRater
      * 
      * @return scaled array
      */
-    public double[] pareWeightsToOneMax(double[] origWeights)
+    private double[] pareWeightsToOneMax(double[] origWeights)
     {
         double max = 1;
         double[] out;
@@ -103,10 +103,18 @@ public class PlayRater
     public double averageOf(double[] weights)
     {
         double sum = 0;
+        double haveABadColorTimes = 0;
         int divideBy = weights.length;
         
         for(int i = 0; i < weights.length; i++)
         {
+            //negative weight cooresponds to "having a green card, but all other
+            //greens have been played"
+            if(weights[i] < 0)
+            {
+                haveABadColorTimes++;
+            }
+            
             sum += weights[i];
             
             if(weights[i] == 0)
@@ -115,7 +123,9 @@ public class PlayRater
             }
         }
         
-        return sum / (double)divideBy;
+        //4 because it's twice as bad to have the last green in a game with
+        //no more green as it is to have the last 7
+        return (sum / (double)divideBy) / Math.pow(4, haveABadColorTimes);
     }
     
     /**
@@ -171,7 +181,20 @@ public class PlayRater
         //less common colors in the given environment are not as good to possess
         for(idx = 0; idx < len; idx++)
         {
-            colorCounts[idx] *= numColorInHand(currHand, colors[idx]);
+            //if I don't have a card of a color in my hand, then don't care
+            //but if I have a card of that color, and there's no more of that
+            //color left (e.g. all the blues have been played), that's reflected
+            //as bad
+            int numInHand = numColorInHand(currHand, colors[idx]);
+            
+            if(colorCounts[idx] == 0 && numInHand > 0)
+            {
+                colorCounts[idx] = -1;
+            }
+            else
+            {
+                colorCounts[idx] *= numInHand;
+            }
         }
         
         colorCounts = pareWeightsToOneMax(colorCounts);
