@@ -109,11 +109,11 @@ public class Environment implements Serializable
         // the 4 is the number of colors
         if (number == 0)
         {
-            out = out / Deck.NUMBER_OF_DUP_ZERO_CARDS * 4;
+            out = out / (Deck.NUMBER_OF_DUP_ZERO_CARDS * 4);
         }
         else
         {
-            out = out / Deck.NUMBER_OF_DUP_REGULAR_CARDS * 4;
+            out = out / (Deck.NUMBER_OF_DUP_REGULAR_CARDS * 4);
         }
         
         return out;
@@ -125,6 +125,10 @@ public class Environment implements Serializable
         
         List<Card> list = state.getPlayedCards();
         
+        if (rank == UnoPlayer.Rank.NUMBER)
+        {
+            return out;
+        }
         for (int i = 0; i < list.size(); i++)
         {
             Card c = list.get(i);
@@ -143,7 +147,7 @@ public class Environment implements Serializable
             }
         }
         // 25 is the number of cards of each color
-        out = out / Deck.NUMBER_OF_DUP_SPECIAL_CARDS;
+        out = out / (Deck.NUMBER_OF_DUP_SPECIAL_CARDS * 4);
         
         return out;
     }

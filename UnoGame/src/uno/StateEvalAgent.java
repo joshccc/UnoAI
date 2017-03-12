@@ -28,7 +28,11 @@ public class StateEvalAgent {
             Card c = hand.get(i);
             playable = env.checkPlayable(c);
             
-            if (c.getColor() == UnoPlayer.Color.RED)
+            if (playable == 0)
+            {
+                out.add(-1.0);
+            }
+            else if (c.getColor() == UnoPlayer.Color.RED)
             {
                 out.add(red + playable);
             }
@@ -59,8 +63,14 @@ public class StateEvalAgent {
            Card c = hand.get(i);
            
            double num = env.countNumber(hand, c.getNumber());
-           num += env.checkPlayable(c);
-           out.add(num);
+           if (env.checkPlayable(c) == 0)
+           {
+              out.add(-1.0);
+           }
+           else
+           {
+              out.add(num);
+           }
         }
         
         return out;
@@ -76,8 +86,14 @@ public class StateEvalAgent {
            Card c = hand.get(i);
            
            double num = env.countSpecial(hand, c.getRank());
-           num += env.checkPlayable(c);
-           out.add(num);
+           if (env.checkPlayable(c) == 0)
+           {
+              out.add(-1.0);
+           }
+           else
+           {
+              out.add(num);
+           }
         }
         
         return out;
@@ -97,6 +113,11 @@ public class StateEvalAgent {
             total += color.get(i) * 0.7;
             total += number.get(i) * 0.2;
             total += special.get(i) * 0.1;
+            
+            if (total > 1)
+            {
+                total = 1;
+            }
             out.add(total);
         }
         return out;

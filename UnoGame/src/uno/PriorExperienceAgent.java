@@ -158,7 +158,7 @@ public class PriorExperienceAgent
     public List<Double> ratePlayableCards(Environment currEnv, List<Card> hand)
     {
         List<Double> weights = new ArrayList<Double>();
-        
+        /*
         //assume playable cards are terrible, and unplayable cards are
         //unplayable. Weights determined later.
         for (int i = 0; i < hand.size(); i++)
@@ -203,9 +203,9 @@ public class PriorExperienceAgent
             
             weights.set(hand.indexOf(card), weight);
         }
-        
+        */
         //TODO
-        return null;
+        return weights;
     }
     
     /**

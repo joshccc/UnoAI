@@ -8,6 +8,9 @@ import java.io.*;
 import javax.imageio.*;
 import java.util.ArrayList;
 import java.util.Scanner;
+import static uno.GraphicalUnoSimulation.PLAYER_FILENAME;
+import static uno.GraphicalUnoSimulation.WINDOW_HEIGHT;
+import static uno.GraphicalUnoSimulation.WINDOW_WIDTH;
 
 public class GraphicalUnoSimulation extends JFrame {
 
@@ -59,7 +62,12 @@ public class GraphicalUnoSimulation extends JFrame {
         playerClasses = new ArrayList<String>();
 
         loadPlayerData();
-
+        
+        playerNames.remove(0);
+        playerClasses.remove(0);
+        playerNames.add(0, "AIPlayer");
+        playerClasses.add(0, "AIPlayer");
+        
         this.numGames = numGames;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
