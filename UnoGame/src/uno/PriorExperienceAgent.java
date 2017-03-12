@@ -337,6 +337,29 @@ public class PriorExperienceAgent
     }
         
     /**
+     * Averages the weights of all PriorTurns in the given list.
+     * 
+     * @param list the list
+     * @return average of all turns in the list
+     */
+    private double averageOf(List<PriorTurn> list)
+    {
+        double out = 0.0;
+        
+        if(!list.isEmpty())
+        {
+            for(PriorTurn turn : list)
+            {
+                out += playKnowledge.get(turn);
+            }
+            
+            out /= list.size();
+        }
+        
+        return out;
+    }
+        
+    /**
      * Given the three generated similarilty lists, returns an overall weight
      * for the playability of the card in question.
      * 
@@ -358,21 +381,47 @@ public class PriorExperienceAgent
     private double calculateWeight(List<PriorTurn> almostExact,
         List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed)
     {
-        return 0;
-        //average all weights for each list
-            //if nothing is in any list, 0
-        //pass to weightedAverage(a, b, c)
-            //if a, b, and c are 0
-                //return 0
-            //if a and b are 0
-                //return c
-            //...
-            //if a is 0
-                //return .66b + .3334c
-            //if b is 0
-                //return .75a + .25c
-            //if c is 0
-                //return .6a + .4b
+        double weight = 0;
+        
+        double almostExactAvg = averageOf(almostExact);
+        double wasPlayableAvg = averageOf(wasPlayable);
+        double couldHavePlayedAvg = averageOf(couldHavePlayed);
+        
+        if(almostExactAvg == 0 && wasPlayableAvg == 0 && couldHavePlayedAvg == 0)
+        {
+            weight = 0;
+        }
+        else if(almostExactAvg == 0 && wasPlayableAvg == 0)
+        {
+            weight = couldHavePlayedAvg;
+        }
+        else if(wasPlayableAvg == 0 && couldHavePlayedAvg == 0)
+        {
+            weight = almostExactAvg;
+        }
+        else if(almostExactAvg == 0 && couldHavePlayedAvg == 0)
+        {
+            weight = wasPlayableAvg;
+        }
+        else if(almostExactAvg == 0)
+        {
+            weight = (.6666 * wasPlayableAvg) + (.3334 * couldHavePlayedAvg);
+        }
+        else if(wasPlayableAvg == 0)
+        {
+            weight = (.75 * almostExactAvg) + (.25 * couldHavePlayedAvg);
+        }
+        else if(couldHavePlayedAvg == 0)
+        {
+            weight = (.6 * almostExactAvg) + (.4 * wasPlayableAvg);
+        }
+        else
+        {
+            weight = (.5 * almostExactAvg) + (.3333 * wasPlayableAvg) +
+                (.1667 * couldHavePlayedAvg);
+        }
+        
+        return weight;
     }
     
     /**

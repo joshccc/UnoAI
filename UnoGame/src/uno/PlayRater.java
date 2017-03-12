@@ -1,7 +1,6 @@
 package uno;
 
 import java.util.List;
-import uno.Environment;
 
 /**
  * PlayRater determines how good of a play a certain card was.
@@ -104,13 +103,19 @@ public class PlayRater
     public double averageOf(double[] weights)
     {
         double sum = 0;
+        int divideBy = weights.length;
         
         for(int i = 0; i < weights.length; i++)
         {
             sum += weights[i];
+            
+            if(weights[i] == 0)
+            {
+                divideBy--;
+            }
         }
         
-        return sum / weights.length;
+        return sum / (double)divideBy;
     }
     
     /**
@@ -156,8 +161,8 @@ public class PlayRater
             //don't worry about wilds, we can play those whenever
             if(color != UnoPlayer.Color.NONE)
             {
-                colorCounts[idx] = convertToStillInDeck(
-                   turnAfter.countColor(hand, color), currHand, color);
+                colorCounts[idx] = convertToStillInDeck
+                    (turnAfter.countColor(hand, color), currHand, color);
                 colors[idx] = color;
                 idx++;
             }
@@ -170,10 +175,6 @@ public class PlayRater
         }
         
         colorCounts = pareWeightsToOneMax(colorCounts);
-        /*TODO
-        not consider colors I do not possess (assign -1 or something)
-        average likely needs to be more robust if I do this
-        */
         return averageOf(colorCounts);
     }
         
@@ -202,6 +203,42 @@ public class PlayRater
     }
     
     /**
+     * Determines the measured metric for the number of cards drawn.
+     * 
+     * @param turnAfter the environment
+     * @param handSize the size of the hand
+     * @return cardsDrawn value
+     */
+    private double getCardsDrawnVal(Environment turnAfter, int handSize)
+    {
+        //determine the number of cards drawn across the turns
+        double cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
+        
+        //the cards drawn value is worsened in cases where I had to draw -
+        //implies I didn't get a turn (I was draw-2ed or something)
+        cardsDrawn = factorInDrawTwoed((int)cardsDrawn, handSize);
+        
+        //to keep everything positive, if cardsDrawn is negative (implying we
+        //drew cards by being draw-2ed or something), convert it to the negative
+        //reciprocal, still conserves meaning - low is bad
+        if(cardsDrawn < 0)
+        {
+            cardsDrawn = -1.0 / cardsDrawn;
+        }
+        
+        return cardsDrawn;
+    }
+    
+    /**
+     * TODO
+     */
+    private double measureRanks()
+    {
+        //TODO
+        return 0.0;
+    }
+    
+    /**
      * Determines if the card that was selected given the environment and the
      * player's hand, with respect to the environment & hand on the next turn,
      * was a good play. A play's "goodness" is measured using many metrics.
@@ -222,18 +259,14 @@ public class PlayRater
         //determine the number of cards played across the turns
         int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
-        //determine the number of cards drawn across the turns
-        int cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
-        
-        //the cards drawn value is worsened in cases where I had to draw -
-        //implies I didn't get a turn (I was draw-2ed or something)
-        cardsDrawn = factorInDrawTwoed(cardsDrawn, currHand.size());
+        //determine how good the number of cards drawn was
+        double cardsDrawn = getCardsDrawnVal(turnAfter, currHand.size());
         
         //determine how good the colors in the player's hand are
         double colorOdds = measureColors(currHand, turnAfter);
         
         //determine how good the numbers/ranks in the player's hand are
-        /***************TODO***************/
+        double rankOdds = measureRanks();
         
         //determine the current point value of the player's hand
         int pointValue = getPointValue(currHand);
@@ -243,10 +276,11 @@ public class PlayRater
         //high: cardsDrawn, colorOdds, rankOdds
         
         //cardsPlayed - 0 and up integer
-        //cardsDrawn - negative to positive
+        //pointValue - 1 and up integer
+        
+        //cardsDrawn - 0 and up fractional
         //colorOdds - 0 to 1
         //rankOdds - 0 to 1
-        //pointValue - 1 and up
         
         return 0;
     }
