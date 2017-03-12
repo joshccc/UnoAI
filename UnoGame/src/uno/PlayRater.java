@@ -1,6 +1,7 @@
 package uno;
 
 import java.util.List;
+import uno.Environment;
 
 /**
  * PlayRater determines how good of a play a certain card was.
@@ -14,7 +15,7 @@ public class PlayRater
 {
     //the environment on the turn
     private final Environment turnEnv;
-    //the cards in hand on that turn, except for the played one
+    //the cards in hand on that turn
     private final List<Card> hand;
     //the Card selected to play
     private final Card played;
@@ -34,11 +35,103 @@ public class PlayRater
     }
     
     /**
+     * Determines the number of cards in the hand of the given color.
+     * 
+     * @param hand the hand
+     * @param color the color to search for
+     * 
+     * @return number of cards of that color in the hand
+     */
+    private int numColorInHand(List<Card> hand, UnoPlayer.Color color)
+    {
+        int out = 0;
+        
+        for(Card card : hand)
+        {
+            if(card.getColor() == color)
+            {
+                out++;
+            }
+        }
+        
+        return out;
+    }
+    
+    /**
+     * Scales the values in the specified array to one max, if needed.
+     * 
+     * @param origWeights the array to scale down if needed
+     * 
+     * @return scaled array
+     */
+    public double[] pareWeightsToOneMax(double[] origWeights)
+    {
+        double max = 1;
+        double[] out;
+        
+        for(int i = 0; i < origWeights.length; i++)
+        {
+            if(origWeights[i] > max)
+            {
+                max = origWeights[i];
+            }
+        }
+        
+        if(max > 1)
+        {
+            out = new double[origWeights.length];
+            
+            for(int i = 0; i < origWeights.length; i++)
+            {
+                out[i] = origWeights[i] / max;
+            }
+        }
+        else
+        {
+            out = origWeights;
+        }
+        
+        return out;
+    }
+    
+    /**
+     * Gets the average of the passed in array.
+     * 
+     * @param weights array to take average of
+     * 
+     * @return average of this array
+     */
+    public double averageOf(double[] weights)
+    {
+        double sum = 0;
+        
+        for(int i = 0; i < weights.length; i++)
+        {
+            sum += weights[i];
+        }
+        
+        return sum / weights.length;
+    }
+    
+    /**
+     * Since countColor counts the number of cards that have been played of a
+     * color, and includes cards in hand of a color, but I want cards in the
+     * deck/in hands of a color, this method does so.
+     * 
+     * @return ratio of cards still in the deck or opponent's hands
+     */
+    private double convertToStillInDeck
+        (double playedAndInHand, List<Card> hand, UnoPlayer.Color color)
+    {
+        return ((playedAndInHand * Environment.NUM_PER_COLOR) 
+            - numColorInHand(hand, color)) / Environment.NUM_PER_COLOR;
+    }
+    
+    /**
      * Helper for ratePlay.
      * Determines the change in color counts across the change in turns.
      * Then, considering the hand the player now possesses, determines
      * the playability strictly based on color probabilities.
-     * Each color's playability is then [SOMETHING], which is what is returned.
      * 
      * Or, short version, determines how good the colors in the hand the player
      * has now are.
@@ -48,26 +141,64 @@ public class PlayRater
      * @return a value between 0 and 1 of how good the colors in the hand are,
      *         0 being bad and 1 being good
      */
-    private double measureColors(
-        List<Card> currHand, Environment turnAfter)
+    private double measureColors
+        (List<Card> currHand, Environment turnAfter)
     {
         int len = UnoPlayer.Color.values().length;
         
         double[] colorCounts = new double[len];
         UnoPlayer.Color[] colors = new UnoPlayer.Color[len];
+        int idx = 0;
         
         //determine the color probabilities in the new environment
-        for(int i = 0; i < len; i++)
+        for(UnoPlayer.Color color : UnoPlayer.Color.values())
         {
-            colorCounts[i] = turnAfter.countColor(currHand, colors[i]);
+            //don't worry about wilds, we can play those whenever
+            if(color != UnoPlayer.Color.NONE)
+            {
+                colorCounts[idx] = convertToStillInDeck(
+                   turnAfter.countColor(hand, color), currHand, color);
+                colors[idx] = color;
+                idx++;
+            }
         }
         
-        //convert each color percentage to be with regards to my hand
+        //less common colors in the given environment are not as good to possess
+        for(idx = 0; idx < len; idx++)
+        {
+            colorCounts[idx] *= numColorInHand(currHand, colors[idx]);
+        }
         
-        //this is the part where I mathematically combine stuff together
-        //this math is not figured out yet
-        //this return is just a placeholder
-        return 0.0;
+        colorCounts = pareWeightsToOneMax(colorCounts);
+        /*TODO
+        not consider colors I do not possess (assign -1 or something)
+        average likely needs to be more robust if I do this
+        */
+        return averageOf(colorCounts);
+    }
+        
+    /**
+     * Determines if the AIPlayer was forced to draw cards as opposed to taking
+     * a turn. Normally, we want a high drawing of cards to be reflected as a
+     * good play, however if it makes us draw cards we don't want that.
+     * 
+     * @param cardsDrawn current cards drawn value
+     * @param currHandSize the current hand's size
+     * 
+     * @return new cards drawn value, after taking into account being forced to
+     *         draw
+     */
+    private int factorInDrawTwoed(int cardsDrawn, int currHandSize)
+    {
+        int handChange = hand.size() - currHandSize;
+        
+        //we drew cards...penalize ourselves for allowing this to happen
+        if(handChange < 0)
+        {
+            cardsDrawn -= (2 * handChange);
+        }
+        
+        return cardsDrawn;
     }
     
     /**
@@ -92,33 +223,31 @@ public class PlayRater
         int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
         //determine the number of cards drawn across the turns
-        
-        //note: likely need to take into account hand size
-        //note: can likely use played & drawn to determine if I was skipped or
-        //reversed or something, ie didn't get my turn for awhile
-        //this should be reflected as bad
         int cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
+        
+        //the cards drawn value is worsened in cases where I had to draw -
+        //implies I didn't get a turn (I was draw-2ed or something)
+        cardsDrawn = factorInDrawTwoed(cardsDrawn, currHand.size());
         
         //determine how good the colors in the player's hand are
         double colorOdds = measureColors(currHand, turnAfter);
         
+        //determine how good the numbers/ranks in the player's hand are
+        /***************TODO***************/
+        
         //determine the current point value of the player's hand
         int pointValue = getPointValue(currHand);
         
-        //may be other metrics to determine as well, but this is a start
+        //reflect the following as good:
+        //low: cardsPlayed, pointValue
+        //high: cardsDrawn, colorOdds, rankOdds
         
-        //other possible metrics:
+        //cardsPlayed - 0 and up integer
+        //cardsDrawn - negative to positive
+        //colorOdds - 0 to 1
+        //rankOdds - 0 to 1
+        //pointValue - 1 and up
         
-        // individual number probabilities(eg if I have the last 1 in my hand, 
-        //it'll be more difficult to play [Can likely just piggyback off of
-        //functionality Tarantino needs in his Agent
-        
-        //now mathematically combine these metrics together
-        //want to reflect the following as good:
-        //  low cardsPlayed
-        //  high cardsDrawn
-        //  high colorOdds
-        //  low pointValue
         return 0;
     }
     
@@ -161,9 +290,12 @@ public class PlayRater
      */
     private int getPointValue(List<Card> hand)
     {
-        //new Hand
-        //add all cards in hand to the hand class
-        //return hand class.countCards
-        return -1;
+        int total = 0;
+        
+        for (Card card : hand)
+        {
+            total += card.forfeitCost();
+        }
+        return total;
     }
 }

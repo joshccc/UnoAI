@@ -11,10 +11,12 @@ public class Environment implements Serializable
     private UnoPlayer.Color calledColor;
     private GameState state;
 
-    private static int cardsInDeck;                             //Number of cards in deck
-    private static ArrayList<Integer> cardsInOpponentsHand;     //Number of cards in each opponents' hand
-    private static ArrayList<Card> cardsPlayed;
+    private int cardsInDeck;                             //Number of cards in deck
+    private ArrayList<Integer> cardsInOpponentsHand;     //Number of cards in each opponents' hand
+    private ArrayList<Card> cardsPlayed;
 
+    public static final int NUM_PER_COLOR = 25;
+    
     public Environment(Card upCard, UnoPlayer.Color calledColor, GameState state){
             this.upCard = upCard;
             this.calledColor = calledColor;
@@ -55,7 +57,7 @@ public class Environment implements Serializable
     }
     /**
      * Determines the ratio of the cards of the given color that have not been
-     * played and are not in the player's hand. For example, if the deck has 25
+     * played and are in the player's hand. For example, if the deck has 25
      * red cards, 4 have been played so far, and the player has 2 red cards in
      * hand, return 19/25.
      * 
@@ -84,8 +86,8 @@ public class Environment implements Serializable
                 out++;
             }
         }
-        // 25 is the number of cards of each color
-        out = out / 25;
+        
+        out = out / NUM_PER_COLOR;
         
         return out;
     }

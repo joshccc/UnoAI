@@ -158,7 +158,7 @@ public class PriorExperienceAgent
     public List<Double> ratePlayableCards(Environment currEnv, List<Card> hand)
     {
         List<Double> weights = new ArrayList<Double>();
-        /*
+        
         //assume playable cards are terrible, and unplayable cards are
         //unplayable. Weights determined later.
         for (int i = 0; i < hand.size(); i++)
@@ -199,12 +199,11 @@ public class PriorExperienceAgent
             
             //use this to determine the weight of that card
             double weight = calculateWeight
-                (almostExact, wasPlayable, couldHavePlayed, card);
+                (almostExact, wasPlayable, couldHavePlayed);
             
             weights.set(hand.indexOf(card), weight);
         }
-        */
-        //TODO
+        
         return weights;
     }
     
@@ -337,15 +336,43 @@ public class PriorExperienceAgent
         return ifOnly;
     }
         
-    
-
-        
+    /**
+     * Given the three generated similarilty lists, returns an overall weight
+     * for the playability of the card in question.
+     * 
+     * This is done by averaging the weights of all prior experiences together,
+     * and then taking a weighted average of the three averages.
+     * almost exact is weighted 50%, was playable is weighted 33.33%, and
+     * could have played is weighted 16.67%. This reflects a priority of 3, 2,
+     * and 1 respectively.
+     * 
+     * In the case that any list is empty (highly possible for the first
+     * several runs), the weighted average is determined differently
+     * 
+     * @param almostExact almost exact environments
+     * @param wasPlayable was playable environments
+     * @param couldHavePlayed hypothetically playable environments
+     * @param card
+     * @return 
+     */
     private double calculateWeight(List<PriorTurn> almostExact,
-        List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed, 
-        Card card)
+        List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed)
     {
-        //TODO
-        return 0.0;
+        return 0;
+        //average all weights for each list
+            //if nothing is in any list, 0
+        //pass to weightedAverage(a, b, c)
+            //if a, b, and c are 0
+                //return 0
+            //if a and b are 0
+                //return c
+            //...
+            //if a is 0
+                //return .66b + .3334c
+            //if b is 0
+                //return .75a + .25c
+            //if c is 0
+                //return .6a + .4b
     }
     
     /**
@@ -392,6 +419,41 @@ public class PriorExperienceAgent
     }
     
     /**
+     * Returns a list containing all PriorTurn entries in the knowledge map
+     * with the specified number of uses.
+     * 
+     * @param uses number of uses
+     * @return list as specified above
+     */
+    private List<PriorTurn> getMinimalUseEntries(int uses)
+    {
+        ArrayList<PriorTurn> out = new ArrayList<PriorTurn>();
+        
+        for(PriorTurn turn : playKnowledge.keySet())
+        {
+            if(turn.numTimesSimilar == uses)
+            {
+                out.add(turn);
+            }
+        }
+        
+        return out;
+    }
+    
+    /**
+     * Removes all entries in the specified list from the knowledge map.
+     * 
+     * @param toRemove the list
+     */
+    void removeAllIn(List<PriorTurn> toRemove)
+    {
+        for(PriorTurn turn : toRemove)
+        {
+            this.playKnowledge.remove(turn);
+        }
+    }
+    
+    /**
      * Clears the specified number of entries from the knowledge map. The
      * entries that are selected are the entries with the lowest usage.
      */
@@ -401,14 +463,20 @@ public class PriorExperienceAgent
         
         while(numEntriesToDelete >= 0)
         {
-            //get all PriorTurns in the map with currUsageTimes uses
-            //if list.size() > numEntriesToDelete
-                //delete the 1st numEntriesToDelete entries in the map
-                //numEntriesToDelete = 0
-            //else
-                //numEntriesToDelete -= list.size()
-                //delete all entries in the list from the map
-            //currUsageTimes++
+            List<PriorTurn> useless = getMinimalUseEntries(currUsageTimes);
+            
+            if(useless.size() > numEntriesToDelete)
+            {
+                useless = useless.subList(0, numEntriesToDelete);
+                numEntriesToDelete = 0;
+            }
+            else
+            {
+                numEntriesToDelete -= useless.size();
+            }
+            
+            removeAllIn(useless);
+            currUsageTimes++;
         }
     }
 }
