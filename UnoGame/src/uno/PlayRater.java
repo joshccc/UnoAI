@@ -1,7 +1,6 @@
 package uno;
 
 import java.util.List;
-import uno.Environment;
 
 /**
  * PlayRater determines how good of a play a certain card was.
@@ -104,13 +103,43 @@ public class PlayRater
     public double averageOf(double[] weights)
     {
         double sum = 0;
+        int numPenalizations = 0;
+        int divideBy = weights.length;
         
         for(int i = 0; i < weights.length; i++)
         {
-            sum += weights[i];
+            if(weights[i] < 0)
+            {
+                numPenalizations++;
+            }
+            else if(weights[i] == 0)
+            {
+                divideBy--;
+            }
+            else
+            {
+                sum += weights[i];
+            }
         }
         
-        return sum / weights.length;
+        //I have no colored cards, so my color odds are the best they can be
+        if(divideBy == 0)
+        {
+            sum = 1;
+        }
+        else
+        {
+            sum = sum / divideBy;
+        }
+        
+        //for all colors I hold that are really bad, bring the entire color
+        //score down
+        if(numPenalizations > 0)
+        {
+            sum = sum / (numPenalizations * 4);
+        }
+        
+        return sum;
     }
     
     /**
@@ -166,14 +195,21 @@ public class PlayRater
         //less common colors in the given environment are not as good to possess
         for(idx = 0; idx < len; idx++)
         {
-            colorCounts[idx] *= numColorInHand(currHand, colors[idx]);
+            int numInHand = numColorInHand(currHand, colors[idx]);
+            
+            //don't penalize self for not having cards
+            //penalize self for having the last card(s) of a given color
+            if(colorCounts[idx] == 0 & numInHand > 0)
+            {
+                colorCounts[idx] = -1;
+            }
+            else
+            {
+                colorCounts[idx] *= numColorInHand(currHand, colors[idx]);
+            }
         }
         
         colorCounts = pareWeightsToOneMax(colorCounts);
-        /*TODO
-        not consider colors I do not possess (assign -1 or something)
-        average likely needs to be more robust if I do this
-        */
         return averageOf(colorCounts);
     }
         
@@ -188,7 +224,7 @@ public class PlayRater
      * @return new cards drawn value, after taking into account being forced to
      *         draw
      */
-    private int factorInDrawTwoed(int cardsDrawn, int currHandSize)
+    private double factorInDrawTwoed(double cardsDrawn, int currHandSize)
     {
         int handChange = hand.size() - currHandSize;
         
@@ -196,6 +232,12 @@ public class PlayRater
         if(handChange < 0)
         {
             cardsDrawn -= (2 * handChange);
+        }
+        
+        //convert negative weights to a small positive weight
+        if(cardsDrawn < 0)
+        {
+            cardsDrawn = -1.0 / cardsDrawn;
         }
         
         return cardsDrawn;
@@ -223,7 +265,7 @@ public class PlayRater
         int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
         //determine the number of cards drawn across the turns
-        int cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
+        double cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
         
         //the cards drawn value is worsened in cases where I had to draw -
         //implies I didn't get a turn (I was draw-2ed or something)
@@ -236,17 +278,18 @@ public class PlayRater
         /***************TODO***************/
         
         //determine the current point value of the player's hand
-        int pointValue = getPointValue(currHand);
+        //-1 keeps things consistent with the other non-probabilistic numbers
+        int pointValue = getPointValue(currHand) - 1;
         
         //reflect the following as good:
         //low: cardsPlayed, pointValue
         //high: cardsDrawn, colorOdds, rankOdds
         
         //cardsPlayed - 0 and up integer
-        //cardsDrawn - negative to positive
+        //cardsDrawn - 0 and up real
         //colorOdds - 0 to 1
         //rankOdds - 0 to 1
-        //pointValue - 1 and up
+        //pointValue - 0 and up integer
         
         return 0;
     }
