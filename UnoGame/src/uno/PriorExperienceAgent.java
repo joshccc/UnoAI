@@ -175,9 +175,6 @@ public class PriorExperienceAgent
         
         //get all currently playable cards
         List<Card> playableCards = getPlayableCards(currEnv, hand);
-        //get all PriorTurns that are similar to the current turn's setup,
-        //in terms of environment and hand
-        List<PriorTurn> similarTurns = getSimilarTurns(currEnv, hand);
         
         //look at specific criteria for each card
         for(Card card : playableCards)
@@ -185,15 +182,18 @@ public class PriorExperienceAgent
             //get all similar environments where the card was played in that
             //environment
             List<PriorTurn> almostExact = 
-                getAlmostExactTurns(similarTurns, card);
+                getAlmostExactTurns(card);
             //get all similar environments where the card was in the hand of
             //that environment, would have been playable, but it was not played
             List<PriorTurn> wasPlayable = 
-                getWasPlayableTurns(similarTurns, card);
+                getWasPlayableTurns(card);
             //get all similar environments where the card is not played, is not
             //in the hand, but would have been playable if it was
             List<PriorTurn> couldHavePlayed =
-                getCouldHavePlayedTurns(similarTurns, card);
+                getCouldHavePlayedTurns(card);
+            
+            //TODO make a few more similarity lists, perhaps using the hand (likely
+            //would be too much of a PITA to use similar environmnets)...
             
             updateUses(almostExact, wasPlayable, couldHavePlayed);
             
@@ -255,12 +255,6 @@ public class PriorExperienceAgent
         return out;
     }
     
-    private List<PriorTurn> getSimilarTurns(Environment env, List<Card> hand)
-    {
-        //TODO
-        return null;
-    }
-    
     /**
      * Gets all similar turns where the card being considered was in fact
      * played in that environment.
@@ -269,12 +263,11 @@ public class PriorExperienceAgent
      * @param card the card being considered
      * @return all similar turns described above
      */
-    private List<PriorTurn> getAlmostExactTurns
-        (List<PriorTurn> similarTurns, Card card)
+    private List<PriorTurn> getAlmostExactTurns(Card card)
     {
         List<PriorTurn> almost = new ArrayList<PriorTurn>();
         
-        for(PriorTurn turn : similarTurns)
+        for(PriorTurn turn : playKnowledge.keySet())
         {
             if(turn.played.equals(card))
             {
@@ -294,12 +287,11 @@ public class PriorExperienceAgent
      * @param card the card being considered
      * @return all similar turns described above
      */
-    private List<PriorTurn> getWasPlayableTurns
-    (List<PriorTurn> similarTurns, Card card)
+    private List<PriorTurn> getWasPlayableTurns(Card card)
     {
         List<PriorTurn> wasPlayable = new ArrayList<PriorTurn>();
         
-        for(PriorTurn turn : similarTurns)
+        for(PriorTurn turn : playKnowledge.keySet())
         {
             if(!turn.played.equals(card) && turn.hand.contains(card) &&
                 turn.turnEnv.checkPlayable(card) > 0.0)
@@ -319,12 +311,11 @@ public class PriorExperienceAgent
      * @param card the card being considered
      * @return  list of similar turns described above
      */
-    private List<PriorTurn> getCouldHavePlayedTurns
-        (List<PriorTurn> similarTurns, Card card)
+    private List<PriorTurn> getCouldHavePlayedTurns(Card card)
     {
         List<PriorTurn> ifOnly = new ArrayList<PriorTurn>();
         
-        for(PriorTurn turn : similarTurns)
+        for(PriorTurn turn :playKnowledge.keySet())
         {
             if(!turn.played.equals(card) && !turn.hand.contains(card) &&
                 turn.turnEnv.checkPlayable(card) > 0.0)
@@ -337,7 +328,7 @@ public class PriorExperienceAgent
     }
         
     /**
-     * Given the three generated similarilty lists, returns an overall weight
+     * Given the three generated similarity lists, returns an overall weight
      * for the playability of the card in question.
      * 
      * This is done by averaging the weights of all prior experiences together,

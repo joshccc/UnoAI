@@ -1,7 +1,6 @@
 package uno;
 
 import java.util.List;
-import uno.Environment;
 
 /**
  * PlayRater determines how good of a play a certain card was.
@@ -58,6 +57,15 @@ public class PlayRater
     }
     
     /**
+     * Determines the number of cards in the hand of the given special ranking.
+     */
+    private int numSpecialInHand(List<Card> hand, UnoPlayer.Rank rak)
+    {
+        //todo
+        return 0;
+    }
+    
+    /**
      * Scales the values in the specified array to one max, if needed.
      * 
      * @param origWeights the array to scale down if needed
@@ -101,16 +109,46 @@ public class PlayRater
      * 
      * @return average of this array
      */
-    public double averageOf(double[] weights)
+    public double averageOf(double[] weights, double penalty)
     {
         double sum = 0;
+        int numPenalizations = 0;
+        int divideBy = weights.length;
         
         for(int i = 0; i < weights.length; i++)
         {
-            sum += weights[i];
+            if(weights[i] < 0)
+            {
+                numPenalizations++;
+            }
+            else if(weights[i] == 0)
+            {
+                divideBy--;
+            }
+            else
+            {
+                sum += weights[i];
+            }
         }
         
-        return sum / weights.length;
+        //I have no colored cards, so my color odds are the best they can be
+        if(divideBy == 0)
+        {
+            sum = 1;
+        }
+        else
+        {
+            sum = sum / divideBy;
+        }
+        
+        //for all colors I hold that are really bad, bring the entire color
+        //score down
+        if(numPenalizations > 0)
+        {
+            sum = sum / (numPenalizations * penalty);
+        }
+        
+        return sum;
     }
     
     /**
@@ -118,13 +156,26 @@ public class PlayRater
      * color, and includes cards in hand of a color, but I want cards in the
      * deck/in hands of a color, this method does so.
      * 
+     * 
+     * 
      * @return ratio of cards still in the deck or opponent's hands
      */
-    private double convertToStillInDeck
-        (double playedAndInHand, List<Card> hand, UnoPlayer.Color color)
+    private double getColorsUnplayed
+        (Environment env, List<Card> hand, UnoPlayer.Color color)
     {
-        return ((playedAndInHand * Environment.NUM_PER_COLOR) 
+        return ((env.countColor(hand, color) * Environment.NUM_PER_COLOR) 
             - numColorInHand(hand, color)) / Environment.NUM_PER_COLOR;
+    }
+        
+    /**
+     * Similar to CTCSID (above), converts the measure of ranks left in the deck
+     * or in opponent's hands.
+     */
+    private double getSpecialsUnplayed
+        (Environment env, List<Card> hand, UnoPlayer.Rank rank)
+    {
+        return ((env.countSpecial(hand, rank) * Environment.NUM_SPECIAL) - 
+            numSpecialInHand(hand, rank)) / Environment.NUM_SPECIAL;
     }
     
     /**
@@ -137,7 +188,7 @@ public class PlayRater
      * has now are.
      * 
      * @param currHand the player's current hand
-     * @param turn the current turn
+     * @param turnAfter the current turn
      * @return a value between 0 and 1 of how good the colors in the hand are,
      *         0 being bad and 1 being good
      */
@@ -156,8 +207,8 @@ public class PlayRater
             //don't worry about wilds, we can play those whenever
             if(color != UnoPlayer.Color.NONE)
             {
-                colorCounts[idx] = convertToStillInDeck(
-                   turnAfter.countColor(hand, color), currHand, color);
+                colorCounts[idx] = getColorsUnplayed
+                    (turnAfter, currHand, color);
                 colors[idx] = color;
                 idx++;
             }
@@ -166,15 +217,22 @@ public class PlayRater
         //less common colors in the given environment are not as good to possess
         for(idx = 0; idx < len; idx++)
         {
-            colorCounts[idx] *= numColorInHand(currHand, colors[idx]);
+            int numInHand = numColorInHand(currHand, colors[idx]);
+            
+            //don't penalize self for not having cards
+            //penalize self for having the last card(s) of a given color
+            if(colorCounts[idx] == 0 & numInHand > 0)
+            {
+                colorCounts[idx] = -1;
+            }
+            else
+            {
+                colorCounts[idx] *= numInHand;
+            }
         }
         
         colorCounts = pareWeightsToOneMax(colorCounts);
-        /*TODO
-        not consider colors I do not possess (assign -1 or something)
-        average likely needs to be more robust if I do this
-        */
-        return averageOf(colorCounts);
+        return averageOf(colorCounts, 4);
     }
         
     /**
@@ -188,7 +246,7 @@ public class PlayRater
      * @return new cards drawn value, after taking into account being forced to
      *         draw
      */
-    private int factorInDrawTwoed(int cardsDrawn, int currHandSize)
+    private double factorInDrawTwoed(double cardsDrawn, int currHandSize)
     {
         int handChange = hand.size() - currHandSize;
         
@@ -198,7 +256,69 @@ public class PlayRater
             cardsDrawn -= (2 * handChange);
         }
         
+        //convert negative weights to a small positive weight
+        if(cardsDrawn < 0)
+        {
+            cardsDrawn = -1.0 / cardsDrawn;
+        }
+        
         return cardsDrawn;
+    }
+    
+    /**
+     * Similar to measureColors, determines how good the ranks of the cards that
+     * the player has in hand are.
+     * 
+     * @param currHand the player's current hand
+     * @param turnAfter the current turn
+     * 
+     * @return a value between 0 and 1 of how good the ranks in a player's hand
+     * are, 0 being bad and 1 being good
+     */
+    public double measureSpecials(List<Card> currHand, Environment turnAfter)
+    {
+        int len = UnoPlayer.Rank.values().length;
+        
+        double[] specCounts = new double[len];
+        UnoPlayer.Rank[] specials = new UnoPlayer.Rank[len];
+        int idx = 0;
+        
+        //determine the color probabilities in the new environment
+        for(UnoPlayer.Rank rank : UnoPlayer.Rank.values())
+        {
+            //don't worry about wilds, we can play those whenever
+            //also don't worry about numbers, we do that elsewhere
+            if(rank != UnoPlayer.Rank.WILD && rank != UnoPlayer.Rank.WILD_D4
+                && rank != UnoPlayer.Rank.NUMBER)
+            {
+                specCounts[idx] = getSpecialsUnplayed
+                    (turnAfter, currHand, rank);
+                specials[idx] = rank;
+                idx++;
+            }
+        }
+        
+        //less common colors in the given environment are not as good to possess
+        for(idx = 0; idx < len; idx++)
+        {
+            int numInHand = numSpecialInHand(currHand, specials[idx]);
+            
+            //don't penalize self for not having cards
+            //penalize self for having the last card(s) of a given color
+            if(specCounts[idx] == 0 & numInHand > 0)
+            {
+                specCounts[idx] = -1;
+            }
+            else
+            {
+                specCounts[idx] *= numInHand;
+            }
+        }
+            
+        specCounts = pareWeightsToOneMax(specCounts);
+        //1.1 because it's easy to play the last reverse of a color, unless the
+        //color is bad too, which is reflected elsewhere
+        return averageOf(specCounts, 1.1);
     }
     
     /**
@@ -223,7 +343,7 @@ public class PlayRater
         int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
         //determine the number of cards drawn across the turns
-        int cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
+        double cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
         
         //the cards drawn value is worsened in cases where I had to draw -
         //implies I didn't get a turn (I was draw-2ed or something)
@@ -233,20 +353,21 @@ public class PlayRater
         double colorOdds = measureColors(currHand, turnAfter);
         
         //determine how good the numbers/ranks in the player's hand are
-        /***************TODO***************/
+        double rankOdds = measureSpecials(currHand, turnAfter);
         
         //determine the current point value of the player's hand
-        int pointValue = getPointValue(currHand);
+        //-1 keeps things consistent with the other non-probabilistic numbers
+        int pointValue = getPointValue(currHand) - 1;
         
         //reflect the following as good:
         //low: cardsPlayed, pointValue
         //high: cardsDrawn, colorOdds, rankOdds
         
         //cardsPlayed - 0 and up integer
-        //cardsDrawn - negative to positive
+        //cardsDrawn - 0 and up real
         //colorOdds - 0 to 1
         //rankOdds - 0 to 1
-        //pointValue - 1 and up
+        //pointValue - 0 and up integer
         
         return 0;
     }

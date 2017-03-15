@@ -5,11 +5,10 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/Game.java</file>
-            <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/UnoPlayer.java</file>
             <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/ExtendedEnvironment.java</file>
             <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/Environment.java</file>
             <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/GameState.java</file>
-            <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/StateEvalAgent.java</file>
+            <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/AIPlayer.java</file>
             <file>file:/Users/joshchoi/Devel/cpe480/UnoGame/src/uno/MiniMaxAgent.java</file>
         </group>
     </open-files>
@@ -20,20 +19,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/Environment.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/Scoreboard.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/GraphicalUnoSimulation.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/Game.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/AIPlayer.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/UnoPlayer.java</file>
             <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/PriorExperienceAgent.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/GameState.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/StateEvalAgent.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/Deck.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/Card.java</file>
-            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/Hand.java</file>
+            <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/MiniMaxAgent.java</file>
             <file>file:/C:/Users/Alec/Desktop/UnoAI/UnoGame/src/uno/PlayRater.java</file>
         </group>
     </open-files>
 </project-private>
->>>>>>> 389fb163560c016fc99c55e01d18290894278afe
+>>>>>>> 79a655ac37b4074815c44492ff7397533b47d651
