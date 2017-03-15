@@ -5,10 +5,16 @@
  */
 package uno;
 
+import java.util.List;
+
 /**
  *
  * @author joshchoi
  */
 public class MiniMaxAgent {
     
+    List<Double> ratePlayableCards(List<Card> hand, Environment env)
+    {
+        return null;
+    }
 }
