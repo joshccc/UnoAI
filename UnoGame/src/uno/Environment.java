@@ -16,6 +16,10 @@ public class Environment implements Serializable
     private ArrayList<Card> cardsPlayed;
 
     public static final int NUM_PER_COLOR = 25;
+    public static final int NUM_ZEROES = 4 * Deck.NUMBER_OF_DUP_ZERO_CARDS;
+    public static final int NUM_OF_A_NUMBER = 4 * Deck.NUMBER_OF_DUP_REGULAR_CARDS;
+    public static final int NUM_SPECIAL = 4 * Deck.NUMBER_OF_DUP_SPECIAL_CARDS;
+    
     
     public Environment(Card upCard, UnoPlayer.Color calledColor, GameState state){
             this.upCard = upCard;
@@ -108,14 +112,13 @@ public class Environment implements Serializable
             }
         }
         
-        // the 4 is the number of colors
         if (number == 0)
         {
-            out = out / (Deck.NUMBER_OF_DUP_ZERO_CARDS * 4);
+            out = out / NUM_ZEROES;
         }
         else
         {
-            out = out / (Deck.NUMBER_OF_DUP_REGULAR_CARDS * 4);
+            out = out / NUM_OF_A_NUMBER;
         }
         
         return out;
@@ -148,8 +151,8 @@ public class Environment implements Serializable
                 out++;
             }
         }
-        // 25 is the number of cards of each color
-        out = out / (Deck.NUMBER_OF_DUP_SPECIAL_CARDS * 4);
+        
+        out = out / NUM_SPECIAL;
         
         return out;
     }
