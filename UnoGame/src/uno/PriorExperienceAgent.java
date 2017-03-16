@@ -50,6 +50,9 @@ public class PriorExperienceAgent
         }
     }
     
+    //percentage of map entries to recycle
+    public static final double PERCENT_RECYCLE = .10;
+    
     //knowledge file that this PEA uses.
     //the file is used to store knowledge across executions.
     private final String knowledgeFile;
@@ -403,7 +406,8 @@ public class PriorExperienceAgent
     {
         if(this.playKnowledge.size() > this.recycleNum)
         {
-            int numEntriesToDelete = (int) Math.floor(Math.log10(recycleNum));
+            int numEntriesToDelete = 
+                (int) Math.floor(PERCENT_RECYCLE * recycleNum);
             clearEntriesFromKnowledgeMap(numEntriesToDelete);
             writeKnowledgeFile();
         }

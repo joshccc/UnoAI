@@ -294,7 +294,7 @@ public class PlayRater
         //we drew cards...penalize ourselves for allowing this to happen
         if(handChange < 0)
         {
-            cardsDrawn -= (2 * handChange);
+            cardsDrawn -= (3 * handChange);
         }
         
         //convert negative weights to a small positive weight
@@ -423,37 +423,40 @@ public class PlayRater
         //determine the number of cards played across the turns
         int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
-        //determine the number of cards drawn across the turns
-        double cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
+        //ensure cardsPlayed isn't 0, for divisibility reasons
+        //any case where no cards are played is great - cards drawn holds more
+        //info to us, so just make cardsPlayed nonexistent
+        cardsPlayed = cardsPlayed == 0 ? 1 : cardsPlayed;
         
         //the cards drawn value is worsened in cases where I had to draw -
         //implies I didn't get a turn (I was draw-2ed or something)
-        cardsDrawn = factorInDrawTwoed(cardsDrawn, currHand.size());
+        double cardsDrawn = 
+            factorInDrawTwoed(turnEnv.numCardsDrawn(turnAfter), currHand.size());
         
-        //determine how good the colors in the player's hand are
-        double colorOdds = measureColors(currHand, turnAfter);
+        //compute a metric for the cards that were played and drawn
+        double cardsGoodness = cardsDrawn / cardsPlayed;
         
-        //determine how good the specials in the player's hand are
-        double specOdds = measureSpecials(currHand, turnAfter);
-        
-        //determine how good the numbers in the player's hand are
-        double numberOdds = measureNumbers(currHand, turnAfter);
+        //determine how good the player's hand is as a whole
+        double handGoodness = (measureColors(currHand, turnAfter) * 
+                               measureSpecials(currHand, turnAfter) *
+                               measureNumbers(currHand, turnAfter)) / 3;
         
         //determine the current point value of the player's hand
-        //-1 keeps things consistent with the other non-probabilistic numbers
-        int pointValue = getPointValue(currHand) - 1;
+        
+        //TODO make this a metric as well, similar to stuff above
+        int pointValue = getPointValue(currHand);
         
         //reflect the following as good:
         //low: cardsPlayed, pointValue
-        //high: cardsDrawn, colorOdds, rankOdds
+        //high: cardsDrawn, handGoodness
         
-        //cardsPlayed - 0 and up integer
-        //cardsDrawn - 0 and up real
-        //colorOdds - 0 to 1
-        //rankOdds - 0 to 1
+        //cardsPGoodness = 0 to ? (not terribly high, maybe like 3 or 4 max)
+        //handGoodness - 0 to 1
         //pointValue - 0 and up integer
         
-        return 0;
+        double overallWeight = (cardsGoodness * handGoodness);
+        
+        return overallWeight;
     }
     
     /**
