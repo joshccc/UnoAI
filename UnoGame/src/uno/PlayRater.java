@@ -461,7 +461,10 @@ public class PlayRater
         
         //System.out.println("Hand goodness metric: " + handGoodness);
         
-        double overallWeight = cardsGoodness * handGoodness;
+        //times 5 acts as a small boost to extremely low scores
+        //my metrics tended to generate mostly scores from 0.0001 to around 0.15
+        //so the * 5 maps these to approximately 0 to 1
+        double overallWeight = (cardsGoodness * handGoodness) * 5;
         
         if(cardsGoodness == 0 && handGoodness > 0)
         {
@@ -477,7 +480,7 @@ public class PlayRater
             overallWeight = 1;
         }
         
-       // System.out.println("\nOverall weight [PlayRater]: " + overallWeight + "\n");
+        //System.out.println("Overall weight [PlayRater]: " + overallWeight);
     
         //System.out.println("\n\n");
         return overallWeight;

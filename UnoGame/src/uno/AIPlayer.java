@@ -7,14 +7,14 @@ public class AIPlayer implements UnoPlayer //interface
 {
     PriorExperienceAgent priorExp;
     StateEvalAgent gameSt;
-    int peWeight;
-    int gsWeight;
+    double peWeight;
+    double gsWeight;
     String knowledgefile;	//for PriorExperience, pass to him
     static final int PE_RECYCLE_VAL = 1000000; //for PriorExperience
 
 
     //Constructor
-    public AIPlayer(int peWeight, int gsWeight, String knowledgeFileName){
+    public AIPlayer(double peWeight, double gsWeight, String knowledgeFileName){
             priorExp = 
                 new PriorExperienceAgent(knowledgeFileName, PE_RECYCLE_VAL);
             gameSt = new StateEvalAgent();
@@ -23,18 +23,22 @@ public class AIPlayer implements UnoPlayer //interface
     }
     
     private int getMaxWeightIdx(ArrayList<Double> totalWeightedValues){
-            int index = 0;
-            for (int i = 1; i < totalWeightedValues.size(); i++){
-                    if (totalWeightedValues.get(i) > totalWeightedValues.get(index))
-                            index = i;
+        int outIdx = 0;
+        double maxWeight = Double.MIN_VALUE;
+        for (int i = 0; i < totalWeightedValues.size(); i++)
+        {
+            if(totalWeightedValues.get(i) > maxWeight)
+            {
+                outIdx = i;
+                maxWeight = totalWeightedValues.get(i);
             }
+        }
 
-            //return totalWeightedValues.indexOf(maximum);
-            return index;
+        return outIdx;
     }
 
     //multiplies each card's value with a weight, then adds them together and returns index of where max weighted card lies.
-    public int makeDecision(List<Double> peWeights, List<Double> gsWeights, int peWeight, int gsWeight){
+    public int makeDecision(List<Double> peWeights, List<Double> gsWeights){
         ArrayList<Double> peWeightedValues = new ArrayList<Double>();
         ArrayList<Double> gsWeightedValues = new ArrayList<Double>();
         ArrayList<Double> totalWeightedValues = new ArrayList<Double>();
@@ -65,7 +69,7 @@ public class AIPlayer implements UnoPlayer //interface
         
         List<Double> priorExpWeights = this.priorExp.ratePlayableCards(env, hand);
         List<Double> gameStateWeights = this.gameSt.ratePlayableCards(hand, env);
-        int idx = this.makeDecision(priorExpWeights, gameStateWeights, peWeight, gsWeight);
+        int idx = this.makeDecision(priorExpWeights, gameStateWeights);
         this.priorExp.learn(env, new ArrayList<Card>(hand), hand.get(idx));
         
         if (env.checkPlayable(hand.get(idx)) == 0)

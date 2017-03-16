@@ -57,13 +57,17 @@ public class PriorExperienceAgent
         this.recycleNum = recycleNum;
         this.rater = null;
         this.playKnowledge = new HashMap<PriorTurn, Double>();
-        buildKnowledgeTable();
+        //buildKnowledgeTable();
     }
     
+    
+    //file writing is SLOOOOOOW
+    
+    /*
     /**
      * Helper for constructor.
      * Builds the knowledge file if it exists. If it doesn't, creates the file.
-     */
+     *
     private void buildKnowledgeTable()
     {
         try
@@ -102,7 +106,7 @@ public class PriorExperienceAgent
      * Writes the knowledge table to the knowledge file.
      * 
      * Note to self: may make this run on a Thread to speed things up
-     */
+     *
     private void writeKnowledgeFile()
     {
         try
@@ -124,6 +128,7 @@ public class PriorExperienceAgent
             System.exit(1);
         }
     }
+    */
     
     /**
      * Determines the playability of each card in the passed hand. Playability
@@ -221,7 +226,7 @@ public class PriorExperienceAgent
             turn.addToSimilarTimes(1);
         }
         
-        writeKnowledgeFile();
+        //writeKnowledgeFile();
     }
     
     /**
@@ -363,20 +368,6 @@ public class PriorExperienceAgent
         double WPavg = averageOf(wasPlayable);
         double CHPavg = averageOf(couldHavePlayed);
         
-        if(almostExact.isEmpty())
-        {
-            System.out.println("AEavg: " + AEavg);
-        }
-        if(wasPlayable.isEmpty())
-        {
-            System.out.println("WPavg: " + WPavg);
-        }
-        if(couldHavePlayed.isEmpty())
-        {
-            System.out.println("CHPavg: " + CHPavg);
-        }
-        
-        
         if(AEavg == 0 && WPavg == 0)
         {
             out = CHPavg;
@@ -428,7 +419,7 @@ public class PriorExperienceAgent
             double playRating = this.rater.ratePlay(hand, env);
             this.playKnowledge.put(prevTurn, playRating);
             cleanKnowledgeMap();
-            writeKnowledgeFile();
+            //writeKnowledgeFile();
         }
         
         //set the PlayRater so that when it's the AIPlayer's turn again, he's
@@ -449,7 +440,7 @@ public class PriorExperienceAgent
             int numEntriesToDelete = 
                 (int) Math.floor(PERCENT_RECYCLE * recycleNum);
             clearEntriesFromKnowledgeMap(numEntriesToDelete);
-            writeKnowledgeFile();
+            //writeKnowledgeFile();
         }
     }
     
