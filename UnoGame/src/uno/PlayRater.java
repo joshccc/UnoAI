@@ -59,10 +59,34 @@ public class PlayRater
     /**
      * Determines the number of cards in the hand of the given special ranking.
      */
-    private int numSpecialInHand(List<Card> hand, UnoPlayer.Rank rak)
+    private int numSpecialInHand(List<Card> hand, UnoPlayer.Rank rank)
     {
-        //todo
-        return 0;
+        int out = 0;
+        
+        for(Card card : hand)
+        {
+            if(card.getRank() == rank)
+            {
+                out++;
+            }
+        }
+        
+        return out;
+    }
+    
+    private int numNumberInHand(List<Card> hand, int num)
+    {
+        int out = 0;
+        
+        for(Card card : hand)
+        {
+            if(card.getNumber() == num)
+            {
+                out++;
+            }
+        }
+        
+        return out;
     }
     
     /**
@@ -177,6 +201,23 @@ public class PlayRater
         return ((env.countSpecial(hand, rank) * Environment.NUM_SPECIAL) - 
             numSpecialInHand(hand, rank)) / Environment.NUM_SPECIAL;
     }
+        
+    private double getNumbersUnplayed
+        (Environment env, List<Card> hand, int num)
+    {
+        int numOfThatNum = 0;
+        if(num == 0)
+        {
+            numOfThatNum = Environment.NUM_ZEROES;
+        }
+        else
+        {
+            numOfThatNum = Environment.NUM_OF_A_NUMBER;
+        }
+        
+        return((env.countNumber(hand, num) * numOfThatNum) -
+            numNumberInHand(hand, num)) / numOfThatNum;
+    }
     
     /**
      * Helper for ratePlay.
@@ -275,7 +316,7 @@ public class PlayRater
      * @return a value between 0 and 1 of how good the ranks in a player's hand
      * are, 0 being bad and 1 being good
      */
-    public double measureSpecials(List<Card> currHand, Environment turnAfter)
+    private double measureSpecials(List<Card> currHand, Environment turnAfter)
     {
         int len = UnoPlayer.Rank.values().length;
         
@@ -322,6 +363,46 @@ public class PlayRater
     }
     
     /**
+     * Similar to measureColors and measureSpecials, Determines on a scale from
+     * 0 to 1 how good the numbers in the player's hand are.
+     */
+    private double measureNumbers(List<Card> currHand, Environment turnAfter)
+    {
+        int len = Card.MAX_NUMBER;
+        
+        int[] nums = new int[len];
+        double[] numCounts = new double[len];
+        
+        for(int idx = 0; idx <= len; idx++)
+        {
+            nums[idx] = idx;
+            numCounts[idx] = getNumbersUnplayed(turnAfter, currHand, nums[idx]);
+        }
+        
+        //less common colors in the given environment are not as good to possess
+        for(int idx = 0; idx < len; idx++)
+        {
+            int numInHand = numNumberInHand(currHand, nums[idx]);
+            
+            //don't penalize self for not having cards
+            //penalize self for having the last card(s) of a given color
+            if(numCounts[idx] == 0 & numInHand > 0)
+            {
+                numCounts[idx] = -1;
+            }
+            else
+            {
+                numCounts[idx] *= numInHand;
+            }
+        }
+            
+        numCounts = pareWeightsToOneMax(numCounts);
+        //1.1 because it's easy to play the last 7 of a color, unless the
+        //color is bad too, which is reflected elsewhere
+        return averageOf(numCounts, 1.1);
+    }
+    
+    /**
      * Determines if the card that was selected given the environment and the
      * player's hand, with respect to the environment & hand on the next turn,
      * was a good play. A play's "goodness" is measured using many metrics.
@@ -352,8 +433,11 @@ public class PlayRater
         //determine how good the colors in the player's hand are
         double colorOdds = measureColors(currHand, turnAfter);
         
-        //determine how good the numbers/ranks in the player's hand are
-        double rankOdds = measureSpecials(currHand, turnAfter);
+        //determine how good the specials in the player's hand are
+        double specOdds = measureSpecials(currHand, turnAfter);
+        
+        //determine how good the numbers in the player's hand are
+        double numberOdds = measureNumbers(currHand, turnAfter);
         
         //determine the current point value of the player's hand
         //-1 keeps things consistent with the other non-probabilistic numbers
