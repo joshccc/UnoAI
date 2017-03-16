@@ -1,8 +1,7 @@
+package uno;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import uno.Card;
-import uno.Environment;
 
 /**
  * Inner class to store what happened on a previous turn, e.g. what card was

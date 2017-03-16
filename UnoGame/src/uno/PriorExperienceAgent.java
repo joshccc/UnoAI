@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -106,9 +107,7 @@ public class PriorExperienceAgent
     {
         try
         {
-            File file = new File(this.knowledgeFile);
-            file.delete();
-            file.createNewFile();
+            new PrintWriter(knowledgeFile).close();
         
             FileOutputStream knowledge = 
                 new FileOutputStream(this.knowledgeFile);
@@ -164,14 +163,22 @@ public class PriorExperienceAgent
             //environment
             List<PriorTurn> almostExact = 
                 getAlmostExactTurns(card);
+            
+          //  System.out.println("Almost exact turns: " + almostExact.size());
+            
             //get all similar environments where the card was in the hand of
             //that environment, would have been playable, but it was not played
             List<PriorTurn> wasPlayable = 
                 getWasPlayableTurns(card);
+            
+          //  System.out.println("Was plyable turns: " + wasPlayable.size());
+            
             //get all similar environments where the card is not played, is not
             //in the hand, but would have been playable if it was
             List<PriorTurn> couldHavePlayed =
                 getCouldHavePlayedTurns(card);
+            
+          //  System.out.println("Could have played turns: " + couldHavePlayed.size());
             
             //TODO make a few more similarity lists, perhaps using the hand (likely
             //would be too much of a PITA to use similar environmnets)...
@@ -181,6 +188,9 @@ public class PriorExperienceAgent
             //use this to determine the weight of that card
             double weight = calculateWeight
                 (almostExact, wasPlayable, couldHavePlayed);
+            
+           // System.out.println("Determined weight of card: " + weight);            
+           // System.out.println("\n");
             
             weights.set(hand.indexOf(card), weight);
         }
@@ -200,15 +210,15 @@ public class PriorExperienceAgent
     {
         for(PriorTurn turn : almostExact)
         {
-            turn.numTimesSimilar += 3;
+            turn.addToSimilarTimes(3);
         }
         for(PriorTurn turn : wasPlayable)
         {
-            turn.numTimesSimilar += 2;
+            turn.addToSimilarTimes(2);
         }
         for(PriorTurn turn : couldHavePlayed)
         {
-            turn.numTimesSimilar += 1;
+            turn.addToSimilarTimes(1);
         }
         
         writeKnowledgeFile();
@@ -307,6 +317,23 @@ public class PriorExperienceAgent
         
         return ifOnly;
     }
+    
+    double averageOf(List<PriorTurn> turns)
+    {
+        double out = 0;
+        
+        for(PriorTurn turn : turns)
+        {
+            out += playKnowledge.get(turn);
+        }
+        
+        if(!turns.isEmpty())
+        {
+            out = out / turns.size();
+        }
+        
+        return out;
+    }
         
     /**
      * Given the three generated similarity lists, returns an overall weight
@@ -330,21 +357,56 @@ public class PriorExperienceAgent
     private double calculateWeight(List<PriorTurn> almostExact,
         List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed)
     {
-        return 0;
-        //average all weights for each list
-            //if nothing is in any list, 0
-        //pass to weightedAverage(a, b, c)
-            //if a, b, and c are 0
-                //return 0
-            //if a and b are 0
-                //return c
-            //...
-            //if a is 0
-                //return .66b + .3334c
-            //if b is 0
-                //return .75a + .25c
-            //if c is 0
-                //return .6a + .4b
+        double out;
+        
+        double AEavg = averageOf(almostExact);
+        double WPavg = averageOf(wasPlayable);
+        double CHPavg = averageOf(couldHavePlayed);
+        
+        if(almostExact.isEmpty())
+        {
+            System.out.println("AEavg: " + AEavg);
+        }
+        if(wasPlayable.isEmpty())
+        {
+            System.out.println("WPavg: " + WPavg);
+        }
+        if(couldHavePlayed.isEmpty())
+        {
+            System.out.println("CHPavg: " + CHPavg);
+        }
+        
+        
+        if(AEavg == 0 && WPavg == 0)
+        {
+            out = CHPavg;
+        }
+        else if(AEavg == 0 && CHPavg == 0)
+        {
+            out = WPavg;
+        }
+        else if(WPavg == 0 && CHPavg == 0)
+        {
+            out = AEavg;
+        }
+        else if(AEavg == 0)
+        {
+            out = (.6666 * WPavg) + (.3334 * CHPavg);
+        }
+        else if(WPavg == 0)
+        {
+            out = (.75 * AEavg) + (.25 * CHPavg);
+        }
+        else if(CHPavg == 0)
+        {
+            out = (.6 * AEavg) + (.4 * WPavg);
+        }
+        else
+        {
+            out = (.5 * AEavg) + (.3333 * WPavg) + (.1667 * CHPavg);
+        }
+        
+        return out;
     }
     
     /**
@@ -404,7 +466,7 @@ public class PriorExperienceAgent
         
         for(PriorTurn turn : playKnowledge.keySet())
         {
-            if(turn.numTimesSimilar == uses)
+            if(turn.getNumTimesSimilar() == uses)
             {
                 out.add(turn);
             }

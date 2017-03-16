@@ -2,6 +2,7 @@
 package uno;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -122,5 +123,15 @@ public class GameState implements Serializable {
             // testing only
             return new java.util.ArrayList<Card>();
         }
+    }
+    
+    public int getDeckSize()
+    {
+        return theGame.deck.getDeckSize();
+    }
+    
+    public ArrayList<Card> getDiscardPile()
+    {
+        return theGame.deck.getDiscardedCards();
     }
 }

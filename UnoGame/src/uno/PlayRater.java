@@ -421,34 +421,65 @@ public class PlayRater
      */
     public double ratePlay(List<Card> currHand, Environment turnAfter)
     {
+        //System.out.println("Cards currently in hand: " + currHand.size());
         //determine the number of cards played across the turns
-        int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
+        double cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
         //ensure cardsPlayed isn't 0, for divisibility reasons
         //any case where no cards are played is great - cards drawn holds more
         //info to us, so just make cardsPlayed nonexistent
         cardsPlayed = cardsPlayed == 0 ? 1 : cardsPlayed;
         
+        //System.out.println("Cards Played: " + cardsPlayed);
+        
         //the cards drawn value is worsened in cases where I had to draw -
         //implies I didn't get a turn (I was draw-2ed or something)
         double cardsDrawn = 
             factorInDrawTwoed(turnEnv.numCardsDrawn(turnAfter), currHand.size());
         
+        //System.out.println("Cards drawn metric: " + cardsDrawn);
+        
         //compute a metric for the cards that were played and drawn
         double cardsGoodness = cardsDrawn / cardsPlayed;
         
+       // System.out.println("Card goodness metric: " + cardsGoodness);
+        
+        double colors = measureColors(currHand, turnAfter);
+        
+        //System.out.println("Colors metric: " + colors);
+        
+        double specials = measureSpecials(currHand, turnAfter);
+        
+        //System.out.println("Specials metric: " + specials);
+        
+        double numbers = measureNumbers(currHand, turnAfter);
+        
+        //System.out.println("Numbers metric: " + numbers);
+        
         //determine how good the player's hand is as a whole
-        double handGoodness = (measureColors(currHand, turnAfter) * 
-                               measureSpecials(currHand, turnAfter) *
-                               measureNumbers(currHand, turnAfter)) / 3;
+        double handGoodness = (colors * numbers * specials) / 3;
+        
+        //System.out.println("Hand goodness metric: " + handGoodness);
         
         double overallWeight = cardsGoodness * handGoodness;
+        
+        if(cardsGoodness == 0 && handGoodness > 0)
+        {
+            overallWeight = handGoodness / 1.3;
+        }
+        else if(handGoodness == 0 && cardsGoodness > 0)
+        {
+            overallWeight = cardsGoodness / 2.0;
+        }
         
         if(overallWeight > 1)
         {
             overallWeight = 1;
         }
         
+       // System.out.println("\nOverall weight [PlayRater]: " + overallWeight + "\n");
+    
+        //System.out.println("\n\n");
         return overallWeight;
     }
     

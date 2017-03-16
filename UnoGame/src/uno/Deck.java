@@ -173,4 +173,9 @@ public class Deck implements Serializable {
             catch (Exception e) { e.printStackTrace(); }
         }
     }
+    
+    public int getDeckSize()
+    {
+        return this.cards.size();
+    }
 }

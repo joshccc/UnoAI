@@ -19,15 +19,18 @@ public class Environment implements Serializable
     public static final int NUM_ZEROES = 4 * Deck.NUMBER_OF_DUP_ZERO_CARDS;
     public static final int NUM_OF_A_NUMBER = 4 * Deck.NUMBER_OF_DUP_REGULAR_CARDS;
     public static final int NUM_SPECIAL = 4 * Deck.NUMBER_OF_DUP_SPECIAL_CARDS;
+    public static final int NUM_IN_DECK = 
+        (4 * NUM_PER_COLOR) + 
+        Deck.NUMBER_OF_WILD_CARDS + Deck.NUMBER_OF_WILD_D4_CARDS;
     
     
     public Environment(Card upCard, UnoPlayer.Color calledColor, GameState state){
-            this.upCard = upCard;
-            this.calledColor = calledColor;
-            this.state = state;
+        this.upCard = upCard;
+        this.calledColor = calledColor;
+        this.state = state;
             
-            cardsInDeck--;
-            //cardsPlayed.add(upCard);
+        this.cardsInDeck = state.getDeckSize();
+        this.cardsPlayed = state.getDiscardPile();    
     }
 
 
@@ -168,8 +171,15 @@ public class Environment implements Serializable
      */
     public int numCardsPlayed(Environment afterEnv)
     {
-        //TODO
-        return 0;
+        int out = afterEnv.cardsPlayed.size() - this.cardsPlayed.size();
+        
+        //deck was shuffled
+        while(out < 0)
+        {
+            out += NUM_IN_DECK;
+        }
+        
+        return out;
     }
     
     /**
@@ -183,7 +193,14 @@ public class Environment implements Serializable
      */
     public int numCardsDrawn(Environment afterEnv)
     {
-        //TODO
-        return 0;
+        int out = this.cardsInDeck - afterEnv.cardsInDeck;
+        
+        //deck was shuffled
+        while(out < 0)
+        {
+            out += NUM_IN_DECK;
+        }
+        
+        return out;
     }
 }
