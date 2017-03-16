@@ -19,37 +19,7 @@ import java.util.List;
  * @author Alec
  */
 public class PriorExperienceAgent 
-{
-    /**
-     * Inner class to store what happened on a previous turn,
-     * e.g. what card was played given the Cards that were in the hand.
-     */
-    private class PriorTurn implements Serializable
-    {
-        final Environment turnEnv;
-        final List<Card> hand;
-        final Card played;
-        //this one isn't a part of the turn.
-        //it's used to track how many times this turn comes up as similar
-        //to other turns.
-        long numTimesSimilar;
-        
-        /**
-         * Sets all passed values to the instances.
-         * 
-         * @param turnEnv the environment
-         * @param hand the hand
-         * @param played the card that was played
-         */
-        private PriorTurn(Environment turnEnv, List<Card> hand, Card played)
-        {
-            this.turnEnv = turnEnv;
-            this.hand = hand;
-            this.played = played;
-            this.numTimesSimilar = 0;
-        }
-    }
-    
+{   
     //percentage of map entries to recycle
     public static final double PERCENT_RECYCLE = .10;
     
@@ -85,6 +55,7 @@ public class PriorExperienceAgent
         this.knowledgeFile = knowledgeFile;
         this.recycleNum = recycleNum;
         this.rater = null;
+        this.playKnowledge = new HashMap<PriorTurn, Double>();
         buildKnowledgeTable();
     }
     
@@ -97,14 +68,20 @@ public class PriorExperienceAgent
         try
         {
             File file = new File(this.knowledgeFile);
+            
             if(file.exists())
             {
                 FileInputStream knowledge = 
                     new FileInputStream(this.knowledgeFile);
-                ObjectInputStream inStream = new ObjectInputStream(knowledge);
-                this.playKnowledge = 
-                    (HashMap<PriorTurn, Double>) inStream.readObject();
-                inStream.close();
+                
+                if(knowledge.available() > 0)
+                {
+                    ObjectInputStream inStream = 
+                        new ObjectInputStream(knowledge);
+                    this.playKnowledge = 
+                        (HashMap<PriorTurn, Double>) inStream.readObject();
+                    inStream.close();
+                }
                 knowledge.close();
             }
             else
@@ -136,7 +113,8 @@ public class PriorExperienceAgent
             FileOutputStream knowledge = 
                 new FileOutputStream(this.knowledgeFile);
             ObjectOutputStream outStream = new ObjectOutputStream(knowledge);
-            outStream.writeObject(this.playKnowledge);
+            outStream.writeObject(playKnowledge);
+            
             outStream.close();
             knowledge.close();
         }
@@ -168,11 +146,11 @@ public class PriorExperienceAgent
         {
             if(currEnv.checkPlayable(hand.get(i)) > 0)
             {
-                weights.set(i, 0.0);
+                weights.add(0.0);
             }
             else
             {
-                weights.set(i, -1.0);
+                weights.add(-1.0);
             }
         }
         
@@ -318,7 +296,7 @@ public class PriorExperienceAgent
     {
         List<PriorTurn> ifOnly = new ArrayList<PriorTurn>();
         
-        for(PriorTurn turn :playKnowledge.keySet())
+        for(PriorTurn turn : playKnowledge.keySet())
         {
             if(!turn.played.equals(card) && !turn.hand.contains(card) &&
                 turn.turnEnv.checkPlayable(card) > 0.0)
@@ -378,7 +356,7 @@ public class PriorExperienceAgent
      * @param hand the current hand
      * @param played the card that was selected to be played
      */
-    public void learn(Environment env, List<Card> hand, Card played)
+    public void learn(Environment env, ArrayList<Card> hand, Card played)
     {
         //don't learn from nonexistent turns
         if(this.rater != null)

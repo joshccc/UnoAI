@@ -1,5 +1,6 @@
 package uno;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,7 +16,7 @@ public class PlayRater
     //the environment on the turn
     private final Environment turnEnv;
     //the cards in hand on that turn
-    private final List<Card> hand;
+    private final ArrayList<Card> hand;
     //the Card selected to play
     private final Card played;
     
@@ -26,7 +27,7 @@ public class PlayRater
      * @param hand the cards in the hand that were not played
      * @param played the card I played given that environment
      */
-    public PlayRater(Environment turnEnv, List<Card> hand, Card played)
+    public PlayRater(Environment turnEnv, ArrayList<Card> hand, Card played)
     {
         this.turnEnv = turnEnv;
         this.hand = hand;
@@ -370,8 +371,8 @@ public class PlayRater
     {
         int len = Card.MAX_NUMBER;
         
-        int[] nums = new int[len];
-        double[] numCounts = new double[len];
+        int[] nums = new int[len + 1];
+        double[] numCounts = new double[len + 1];
         
         for(int idx = 0; idx <= len; idx++)
         {
@@ -441,20 +442,12 @@ public class PlayRater
                                measureSpecials(currHand, turnAfter) *
                                measureNumbers(currHand, turnAfter)) / 3;
         
-        //determine the current point value of the player's hand
+        double overallWeight = cardsGoodness * handGoodness;
         
-        //TODO make this a metric as well, similar to stuff above
-        int pointValue = getPointValue(currHand);
-        
-        //reflect the following as good:
-        //low: cardsPlayed, pointValue
-        //high: cardsDrawn, handGoodness
-        
-        //cardsPGoodness = 0 to ? (not terribly high, maybe like 3 or 4 max)
-        //handGoodness - 0 to 1
-        //pointValue - 0 and up integer
-        
-        double overallWeight = (cardsGoodness * handGoodness);
+        if(overallWeight > 1)
+        {
+            overallWeight = 1;
+        }
         
         return overallWeight;
     }
@@ -474,7 +467,7 @@ public class PlayRater
      * 
      * @return hand
      */
-    public List<Card> getHand()
+    public ArrayList<Card> getHand()
     {
         return this.hand;
     }
