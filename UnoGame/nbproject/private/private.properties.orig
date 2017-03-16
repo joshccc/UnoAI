@@ -1,12 +1,4 @@
-<<<<<<< Updated upstream
-application.args=10000
-compile.on.save=true
-do.depend=false
-do.jar=true
-javac.debug=true
-javadoc.preview=true
-user.properties.file=C:\\Users\\Alec\\AppData\\Roaming\\NetBeans\\8.0.2\\build.properties
-=======
+<<<<<<< HEAD
 application.args=10000
 compile.on.save=true
 do.depend=false
@@ -14,4 +6,12 @@ do.jar=true
 javac.debug=true
 javadoc.preview=true
 user.properties.file=/Users/joshchoi/Library/Application Support/NetBeans/8.2/build.properties
->>>>>>> Stashed changes
+=======
+application.args=50000
+compile.on.save=true
+do.depend=false
+do.jar=true
+javac.debug=true
+javadoc.preview=true
+user.properties.file=C:\\Users\\Alec\\AppData\\Roaming\\NetBeans\\8.0.2\\build.properties
+>>>>>>> 62309f0cb2766688f97791609a3acb22d0bfe9fc

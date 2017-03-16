@@ -15,7 +15,7 @@ import java.util.ArrayList;
 public class Hand implements Serializable {
 
     private ArrayList<Card> cards;
-    private UnoPlayer player;
+    private transient UnoPlayer player;
     private String playerName;
 
     /**
@@ -26,9 +26,18 @@ public class Hand implements Serializable {
      */
     public Hand(String unoPlayerClassName, String playerName) {
         try {
-            if (unoPlayerClassName == "AIPlayer")
+            /*if(unoPlayerClassName == "mixed_player")
             {
-                player = new AIPlayer(0,1, playerName);
+                player = new AIPlayer(.5, .5, "");
+            }*/
+            if (unoPlayerClassName == "PE_Player")
+            {
+                //testing config for purely P.E.A. AI
+                player = new AIPlayer(1,0, "knowledge.know");
+            }
+            else if( unoPlayerClassName == "ST_Player")
+            {
+                player = new AIPlayer(0, 1, "");
             }
             else
             {

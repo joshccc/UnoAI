@@ -24,6 +24,7 @@ public class Card implements Serializable {
      * NetBeans.
      */
     public static final boolean PRINT_IN_COLOR = false;
+    public static final int MAX_NUMBER = 9;
 
     private UnoPlayer.Color color;
     private UnoPlayer.Rank rank;

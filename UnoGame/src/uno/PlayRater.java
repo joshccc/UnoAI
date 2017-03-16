@@ -1,5 +1,6 @@
 package uno;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,7 +16,7 @@ public class PlayRater
     //the environment on the turn
     private final Environment turnEnv;
     //the cards in hand on that turn
-    private final List<Card> hand;
+    private final ArrayList<Card> hand;
     //the Card selected to play
     private final Card played;
     
@@ -26,7 +27,7 @@ public class PlayRater
      * @param hand the cards in the hand that were not played
      * @param played the card I played given that environment
      */
-    public PlayRater(Environment turnEnv, List<Card> hand, Card played)
+    public PlayRater(Environment turnEnv, ArrayList<Card> hand, Card played)
     {
         this.turnEnv = turnEnv;
         this.hand = hand;
@@ -59,10 +60,34 @@ public class PlayRater
     /**
      * Determines the number of cards in the hand of the given special ranking.
      */
-    private int numSpecialInHand(List<Card> hand, UnoPlayer.Rank rak)
+    private int numSpecialInHand(List<Card> hand, UnoPlayer.Rank rank)
     {
-        //todo
-        return 0;
+        int out = 0;
+        
+        for(Card card : hand)
+        {
+            if(card.getRank() == rank)
+            {
+                out++;
+            }
+        }
+        
+        return out;
+    }
+    
+    private int numNumberInHand(List<Card> hand, int num)
+    {
+        int out = 0;
+        
+        for(Card card : hand)
+        {
+            if(card.getNumber() == num)
+            {
+                out++;
+            }
+        }
+        
+        return out;
     }
     
     /**
@@ -177,6 +202,23 @@ public class PlayRater
         return ((env.countSpecial(hand, rank) * Environment.NUM_SPECIAL) - 
             numSpecialInHand(hand, rank)) / Environment.NUM_SPECIAL;
     }
+        
+    private double getNumbersUnplayed
+        (Environment env, List<Card> hand, int num)
+    {
+        int numOfThatNum = 0;
+        if(num == 0)
+        {
+            numOfThatNum = Environment.NUM_ZEROES;
+        }
+        else
+        {
+            numOfThatNum = Environment.NUM_OF_A_NUMBER;
+        }
+        
+        return((env.countNumber(hand, num) * numOfThatNum) -
+            numNumberInHand(hand, num)) / numOfThatNum;
+    }
     
     /**
      * Helper for ratePlay.
@@ -253,7 +295,7 @@ public class PlayRater
         //we drew cards...penalize ourselves for allowing this to happen
         if(handChange < 0)
         {
-            cardsDrawn -= (2 * handChange);
+            cardsDrawn -= (3 * handChange);
         }
         
         //convert negative weights to a small positive weight
@@ -275,7 +317,7 @@ public class PlayRater
      * @return a value between 0 and 1 of how good the ranks in a player's hand
      * are, 0 being bad and 1 being good
      */
-    public double measureSpecials(List<Card> currHand, Environment turnAfter)
+    private double measureSpecials(List<Card> currHand, Environment turnAfter)
     {
         int len = UnoPlayer.Rank.values().length;
         
@@ -322,6 +364,46 @@ public class PlayRater
     }
     
     /**
+     * Similar to measureColors and measureSpecials, Determines on a scale from
+     * 0 to 1 how good the numbers in the player's hand are.
+     */
+    private double measureNumbers(List<Card> currHand, Environment turnAfter)
+    {
+        int len = Card.MAX_NUMBER;
+        
+        int[] nums = new int[len + 1];
+        double[] numCounts = new double[len + 1];
+        
+        for(int idx = 0; idx <= len; idx++)
+        {
+            nums[idx] = idx;
+            numCounts[idx] = getNumbersUnplayed(turnAfter, currHand, nums[idx]);
+        }
+        
+        //less common colors in the given environment are not as good to possess
+        for(int idx = 0; idx < len; idx++)
+        {
+            int numInHand = numNumberInHand(currHand, nums[idx]);
+            
+            //don't penalize self for not having cards
+            //penalize self for having the last card(s) of a given color
+            if(numCounts[idx] == 0 & numInHand > 0)
+            {
+                numCounts[idx] = -1;
+            }
+            else
+            {
+                numCounts[idx] *= numInHand;
+            }
+        }
+            
+        numCounts = pareWeightsToOneMax(numCounts);
+        //1.1 because it's easy to play the last 7 of a color, unless the
+        //color is bad too, which is reflected elsewhere
+        return averageOf(numCounts, 1.1);
+    }
+    
+    /**
      * Determines if the card that was selected given the environment and the
      * player's hand, with respect to the environment & hand on the next turn,
      * was a good play. A play's "goodness" is measured using many metrics.
@@ -339,37 +421,69 @@ public class PlayRater
      */
     public double ratePlay(List<Card> currHand, Environment turnAfter)
     {
+        //System.out.println("Cards currently in hand: " + currHand.size());
         //determine the number of cards played across the turns
-        int cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
+        double cardsPlayed = this.turnEnv.numCardsPlayed(turnAfter);
         
-        //determine the number of cards drawn across the turns
-        double cardsDrawn = this.turnEnv.numCardsDrawn(turnAfter);
+        //ensure cardsPlayed isn't 0, for divisibility reasons
+        //any case where no cards are played is great - cards drawn holds more
+        //info to us, so just make cardsPlayed nonexistent
+        cardsPlayed = cardsPlayed == 0 ? 1 : cardsPlayed;
+        
+        //System.out.println("Cards Played: " + cardsPlayed);
         
         //the cards drawn value is worsened in cases where I had to draw -
         //implies I didn't get a turn (I was draw-2ed or something)
-        cardsDrawn = factorInDrawTwoed(cardsDrawn, currHand.size());
+        double cardsDrawn = 
+            factorInDrawTwoed(turnEnv.numCardsDrawn(turnAfter), currHand.size());
         
-        //determine how good the colors in the player's hand are
-        double colorOdds = measureColors(currHand, turnAfter);
+        //System.out.println("Cards drawn metric: " + cardsDrawn);
         
-        //determine how good the numbers/ranks in the player's hand are
-        double rankOdds = measureSpecials(currHand, turnAfter);
+        //compute a metric for the cards that were played and drawn
+        double cardsGoodness = cardsDrawn / cardsPlayed;
         
-        //determine the current point value of the player's hand
-        //-1 keeps things consistent with the other non-probabilistic numbers
-        int pointValue = getPointValue(currHand) - 1;
+       // System.out.println("Card goodness metric: " + cardsGoodness);
         
-        //reflect the following as good:
-        //low: cardsPlayed, pointValue
-        //high: cardsDrawn, colorOdds, rankOdds
+        double colors = measureColors(currHand, turnAfter);
         
-        //cardsPlayed - 0 and up integer
-        //cardsDrawn - 0 and up real
-        //colorOdds - 0 to 1
-        //rankOdds - 0 to 1
-        //pointValue - 0 and up integer
+        //System.out.println("Colors metric: " + colors);
         
-        return 0;
+        double specials = measureSpecials(currHand, turnAfter);
+        
+        //System.out.println("Specials metric: " + specials);
+        
+        double numbers = measureNumbers(currHand, turnAfter);
+        
+        //System.out.println("Numbers metric: " + numbers);
+        
+        //determine how good the player's hand is as a whole
+        double handGoodness = (colors * numbers * specials) / 3;
+        
+        //System.out.println("Hand goodness metric: " + handGoodness);
+        
+        //times 5 acts as a small boost to extremely low scores
+        //my metrics tended to generate mostly scores from 0.0001 to around 0.15
+        //so the * 5 maps these to approximately 0 to 1
+        double overallWeight = (cardsGoodness * handGoodness) * 5;
+        
+        if(cardsGoodness == 0 && handGoodness > 0)
+        {
+            overallWeight = handGoodness / 1.3;
+        }
+        else if(handGoodness == 0 && cardsGoodness > 0)
+        {
+            overallWeight = cardsGoodness / 2.0;
+        }
+        
+        if(overallWeight > 1)
+        {
+            overallWeight = 1;
+        }
+        
+        //System.out.println("Overall weight [PlayRater]: " + overallWeight);
+    
+        //System.out.println("\n\n");
+        return overallWeight;
     }
     
     /**
@@ -387,7 +501,7 @@ public class PlayRater
      * 
      * @return hand
      */
-    public List<Card> getHand()
+    public ArrayList<Card> getHand()
     {
         return this.hand;
     }

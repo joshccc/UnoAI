@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,36 +20,9 @@ import java.util.List;
  * @author Alec
  */
 public class PriorExperienceAgent 
-{
-    /**
-     * Inner class to store what happened on a previous turn,
-     * e.g. what card was played given the Cards that were in the hand.
-     */
-    private class PriorTurn implements Serializable
-    {
-        final Environment turnEnv;
-        final List<Card> hand;
-        final Card played;
-        //this one isn't a part of the turn.
-        //it's used to track how many times this turn comes up as similar
-        //to other turns.
-        long numTimesSimilar;
-        
-        /**
-         * Sets all passed values to the instances.
-         * 
-         * @param turnEnv the environment
-         * @param hand the hand
-         * @param played the card that was played
-         */
-        private PriorTurn(Environment turnEnv, List<Card> hand, Card played)
-        {
-            this.turnEnv = turnEnv;
-            this.hand = hand;
-            this.played = played;
-            this.numTimesSimilar = 0;
-        }
-    }
+{   
+    //percentage of map entries to recycle
+    public static final double PERCENT_RECYCLE = .10;
     
     //knowledge file that this PEA uses.
     //the file is used to store knowledge across executions.
@@ -82,26 +56,37 @@ public class PriorExperienceAgent
         this.knowledgeFile = knowledgeFile;
         this.recycleNum = recycleNum;
         this.rater = null;
-        buildKnowledgeTable();
+        this.playKnowledge = new HashMap<PriorTurn, Double>();
+        //buildKnowledgeTable();
     }
     
+    
+    //file writing is SLOOOOOOW
+    
+    /*
     /**
      * Helper for constructor.
      * Builds the knowledge file if it exists. If it doesn't, creates the file.
-     */
+     *
     private void buildKnowledgeTable()
     {
         try
         {
             File file = new File(this.knowledgeFile);
+            
             if(file.exists())
             {
                 FileInputStream knowledge = 
                     new FileInputStream(this.knowledgeFile);
-                ObjectInputStream inStream = new ObjectInputStream(knowledge);
-                this.playKnowledge = 
-                    (HashMap<PriorTurn, Double>) inStream.readObject();
-                inStream.close();
+                
+                if(knowledge.available() > 0)
+                {
+                    ObjectInputStream inStream = 
+                        new ObjectInputStream(knowledge);
+                    this.playKnowledge = 
+                        (HashMap<PriorTurn, Double>) inStream.readObject();
+                    inStream.close();
+                }
                 knowledge.close();
             }
             else
@@ -121,19 +106,18 @@ public class PriorExperienceAgent
      * Writes the knowledge table to the knowledge file.
      * 
      * Note to self: may make this run on a Thread to speed things up
-     */
+     *
     private void writeKnowledgeFile()
     {
         try
         {
-            File file = new File(this.knowledgeFile);
-            file.delete();
-            file.createNewFile();
+            new PrintWriter(knowledgeFile).close();
         
             FileOutputStream knowledge = 
                 new FileOutputStream(this.knowledgeFile);
             ObjectOutputStream outStream = new ObjectOutputStream(knowledge);
-            outStream.writeObject(this.playKnowledge);
+            outStream.writeObject(playKnowledge);
+            
             outStream.close();
             knowledge.close();
         }
@@ -144,6 +128,7 @@ public class PriorExperienceAgent
             System.exit(1);
         }
     }
+    */
     
     /**
      * Determines the playability of each card in the passed hand. Playability
@@ -165,11 +150,11 @@ public class PriorExperienceAgent
         {
             if(currEnv.checkPlayable(hand.get(i)) > 0)
             {
-                weights.set(i, 0.0);
+                weights.add(0.0);
             }
             else
             {
-                weights.set(i, -1.0);
+                weights.add(-1.0);
             }
         }
         
@@ -183,14 +168,22 @@ public class PriorExperienceAgent
             //environment
             List<PriorTurn> almostExact = 
                 getAlmostExactTurns(card);
+            
+          //  System.out.println("Almost exact turns: " + almostExact.size());
+            
             //get all similar environments where the card was in the hand of
             //that environment, would have been playable, but it was not played
             List<PriorTurn> wasPlayable = 
                 getWasPlayableTurns(card);
+            
+          //  System.out.println("Was plyable turns: " + wasPlayable.size());
+            
             //get all similar environments where the card is not played, is not
             //in the hand, but would have been playable if it was
             List<PriorTurn> couldHavePlayed =
                 getCouldHavePlayedTurns(card);
+            
+          //  System.out.println("Could have played turns: " + couldHavePlayed.size());
             
             //TODO make a few more similarity lists, perhaps using the hand (likely
             //would be too much of a PITA to use similar environmnets)...
@@ -200,6 +193,9 @@ public class PriorExperienceAgent
             //use this to determine the weight of that card
             double weight = calculateWeight
                 (almostExact, wasPlayable, couldHavePlayed);
+            
+           // System.out.println("Determined weight of card: " + weight);            
+           // System.out.println("\n");
             
             weights.set(hand.indexOf(card), weight);
         }
@@ -219,18 +215,18 @@ public class PriorExperienceAgent
     {
         for(PriorTurn turn : almostExact)
         {
-            turn.numTimesSimilar += 3;
+            turn.addToSimilarTimes(3);
         }
         for(PriorTurn turn : wasPlayable)
         {
-            turn.numTimesSimilar += 2;
+            turn.addToSimilarTimes(2);
         }
         for(PriorTurn turn : couldHavePlayed)
         {
-            turn.numTimesSimilar += 1;
+            turn.addToSimilarTimes(1);
         }
         
-        writeKnowledgeFile();
+        //writeKnowledgeFile();
     }
     
     /**
@@ -315,7 +311,7 @@ public class PriorExperienceAgent
     {
         List<PriorTurn> ifOnly = new ArrayList<PriorTurn>();
         
-        for(PriorTurn turn :playKnowledge.keySet())
+        for(PriorTurn turn : playKnowledge.keySet())
         {
             if(!turn.played.equals(card) && !turn.hand.contains(card) &&
                 turn.turnEnv.checkPlayable(card) > 0.0)
@@ -325,6 +321,23 @@ public class PriorExperienceAgent
         }
         
         return ifOnly;
+    }
+    
+    double averageOf(List<PriorTurn> turns)
+    {
+        double out = 0;
+        
+        for(PriorTurn turn : turns)
+        {
+            out += playKnowledge.get(turn);
+        }
+        
+        if(!turns.isEmpty())
+        {
+            out = out / turns.size();
+        }
+        
+        return out;
     }
         
     /**
@@ -349,21 +362,42 @@ public class PriorExperienceAgent
     private double calculateWeight(List<PriorTurn> almostExact,
         List<PriorTurn> wasPlayable, List<PriorTurn> couldHavePlayed)
     {
-        return 0;
-        //average all weights for each list
-            //if nothing is in any list, 0
-        //pass to weightedAverage(a, b, c)
-            //if a, b, and c are 0
-                //return 0
-            //if a and b are 0
-                //return c
-            //...
-            //if a is 0
-                //return .66b + .3334c
-            //if b is 0
-                //return .75a + .25c
-            //if c is 0
-                //return .6a + .4b
+        double out;
+        
+        double AEavg = averageOf(almostExact);
+        double WPavg = averageOf(wasPlayable);
+        double CHPavg = averageOf(couldHavePlayed);
+        
+        if(AEavg == 0 && WPavg == 0)
+        {
+            out = CHPavg;
+        }
+        else if(AEavg == 0 && CHPavg == 0)
+        {
+            out = WPavg;
+        }
+        else if(WPavg == 0 && CHPavg == 0)
+        {
+            out = AEavg;
+        }
+        else if(AEavg == 0)
+        {
+            out = (.6666 * WPavg) + (.3334 * CHPavg);
+        }
+        else if(WPavg == 0)
+        {
+            out = (.75 * AEavg) + (.25 * CHPavg);
+        }
+        else if(CHPavg == 0)
+        {
+            out = (.6 * AEavg) + (.4 * WPavg);
+        }
+        else
+        {
+            out = (.5 * AEavg) + (.3333 * WPavg) + (.1667 * CHPavg);
+        }
+        
+        return out;
     }
     
     /**
@@ -375,7 +409,7 @@ public class PriorExperienceAgent
      * @param hand the current hand
      * @param played the card that was selected to be played
      */
-    public void learn(Environment env, List<Card> hand, Card played)
+    public void learn(Environment env, ArrayList<Card> hand, Card played)
     {
         //don't learn from nonexistent turns
         if(this.rater != null)
@@ -385,7 +419,7 @@ public class PriorExperienceAgent
             double playRating = this.rater.ratePlay(hand, env);
             this.playKnowledge.put(prevTurn, playRating);
             cleanKnowledgeMap();
-            writeKnowledgeFile();
+            //writeKnowledgeFile();
         }
         
         //set the PlayRater so that when it's the AIPlayer's turn again, he's
@@ -403,9 +437,10 @@ public class PriorExperienceAgent
     {
         if(this.playKnowledge.size() > this.recycleNum)
         {
-            int numEntriesToDelete = (int) Math.floor(Math.log10(recycleNum));
+            int numEntriesToDelete = 
+                (int) Math.floor(PERCENT_RECYCLE * recycleNum);
             clearEntriesFromKnowledgeMap(numEntriesToDelete);
-            writeKnowledgeFile();
+            //writeKnowledgeFile();
         }
     }
     
@@ -422,7 +457,7 @@ public class PriorExperienceAgent
         
         for(PriorTurn turn : playKnowledge.keySet())
         {
-            if(turn.numTimesSimilar == uses)
+            if(turn.getNumTimesSimilar() == uses)
             {
                 out.add(turn);
             }
