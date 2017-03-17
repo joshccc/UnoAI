@@ -178,4 +178,9 @@ public class Deck implements Serializable {
     {
         return this.cards.size();
     }
+    
+    public void insertCardBack(Card toInsert) {
+        this.cards.add(toInsert);
+        this.shuffle();
+    }
 }

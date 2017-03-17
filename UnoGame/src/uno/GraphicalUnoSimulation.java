@@ -71,6 +71,10 @@ public class GraphicalUnoSimulation extends JFrame {
         playerClasses.remove(2);
         playerNames.add(2, "ST_Player");
         playerClasses.add(2, "ST_Player");
+        playerNames.remove(1);
+        playerClasses.remove(1);
+        playerNames.add(1, "MC_Player");
+        playerClasses.add(1, "MC_Player");
         /*playerNames.remove(0);
         playerClasses.remove(0);
         playerNames.add(0, "Mixed Player");

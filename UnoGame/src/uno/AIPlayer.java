@@ -7,17 +7,22 @@ public class AIPlayer implements UnoPlayer //interface
 {
     PriorExperienceAgent priorExp;
     StateEvalAgent gameSt;
+    MonteCarloAgent monte;
     double peWeight;
     double gsWeight;
+    double mcWeight;
     String knowledgefile;	//for PriorExperience, pass to him
     static final int PE_RECYCLE_VAL = 1000000; //for PriorExperience
 
 
     //Constructor
-    public AIPlayer(double peWeight, double gsWeight, String knowledgeFileName){
+    public AIPlayer(double peWeight, double gsWeight, double mcWeight, String knowledgeFileName){
             priorExp = 
                 new PriorExperienceAgent(knowledgeFileName, PE_RECYCLE_VAL);
             gameSt = new StateEvalAgent();
+            monte = new MonteCarloAgent();
+            
+            this.mcWeight = mcWeight;
             this.gsWeight = gsWeight;
             this.peWeight = peWeight;
     }
@@ -38,9 +43,11 @@ public class AIPlayer implements UnoPlayer //interface
     }
 
     //multiplies each card's value with a weight, then adds them together and returns index of where max weighted card lies.
-    public int makeDecision(List<Double> peWeights, List<Double> gsWeights){
+    public int makeDecision(List<Double> peWeights, List<Double> gsWeights, List<Double> mcWeights){
         ArrayList<Double> peWeightedValues = new ArrayList<Double>();
         ArrayList<Double> gsWeightedValues = new ArrayList<Double>();
+        ArrayList<Double> mcWeightedValues = new ArrayList<Double>();
+        
         ArrayList<Double> totalWeightedValues = new ArrayList<Double>();
         
         for (Double pe: peWeights){
@@ -52,10 +59,15 @@ public class AIPlayer implements UnoPlayer //interface
                 gs = gs * gsWeight;
                 gsWeightedValues.add(gs);
         }
-
+        
+        for (Double mc: mcWeights){
+                mc = mc * mcWeight;
+                mcWeightedValues.add(mc);
+        }
+        
         for(int i = 0; i < gsWeights.size(); i++){
                 double total = peWeightedValues.get(i) +
-                    gsWeightedValues.get(i);
+                    gsWeightedValues.get(i) + mcWeightedValues.get(i);
                 totalWeightedValues.add(total);
         }
 
@@ -69,7 +81,19 @@ public class AIPlayer implements UnoPlayer //interface
         
         List<Double> priorExpWeights = this.priorExp.ratePlayableCards(env, hand);
         List<Double> gameStateWeights = this.gameSt.ratePlayableCards(hand, env);
-        int idx = this.makeDecision(priorExpWeights, gameStateWeights);
+        List<Double> monteCarloWeights = null;
+                
+        if (mcWeight > 0) {
+            monteCarloWeights = this.monte.ratePlayableCards(hand, env);
+        }
+        else {
+            monteCarloWeights = new ArrayList<Double>();
+            for (Card card : hand) {
+                monteCarloWeights.add((double) 0);
+            }
+        }
+        
+        int idx = this.makeDecision(priorExpWeights, gameStateWeights, monteCarloWeights);
         this.priorExp.learn(env, new ArrayList<Card>(hand), hand.get(idx));
         
         if (env.checkPlayable(hand.get(idx)) == 0)
@@ -84,6 +108,10 @@ public class AIPlayer implements UnoPlayer //interface
     {
         //TODO
         UnoPlayer.Color out = UnoPlayer.Color.RED;
+        
+        if (mcWeight == 1) {
+            return monte.getColor();
+        }
 
         return out;
     }

@@ -33,11 +33,15 @@ public class Hand implements Serializable {
             if (unoPlayerClassName == "PE_Player")
             {
                 //testing config for purely P.E.A. AI
-                player = new AIPlayer(1,0, "knowledge.know");
+                player = new AIPlayer(1, 0, 0, "knowledge.know");
             }
             else if( unoPlayerClassName == "ST_Player")
             {
-                player = new AIPlayer(0, 1, "");
+                player = new AIPlayer(0, 1, 0, "");
+            }
+            else if (unoPlayerClassName == "MC_Player")
+            {
+                player = new AIPlayer(0, 0, 1, "");
             }
             else
             {

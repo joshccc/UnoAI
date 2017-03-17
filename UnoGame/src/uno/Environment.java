@@ -30,7 +30,12 @@ public class Environment implements Serializable
         this.state = state;
             
         this.cardsInDeck = state.getDeckSize();
-        this.cardsPlayed = state.getDiscardPile();    
+        this.cardsPlayed = state.getDiscardPile();
+        this.cardsInOpponentsHand = new ArrayList();
+        
+        for (int num : state.getNumCardsInHandsOfUpcomingPlayers()) {
+            this.cardsInOpponentsHand.add(num);
+        }
     }
 
 
@@ -44,6 +49,14 @@ public class Environment implements Serializable
 
     public ArrayList<Card> getCardsPlayed(){            //Returns list of cards already played.
             return this.cardsPlayed;
+    }
+    
+    public Card getUpCard() {
+        return this.upCard;
+    }
+    
+    public UnoPlayer.Color getCalledColor() {
+        return this.calledColor;
     }
     
     double checkPlayable(Card c)
@@ -202,5 +215,9 @@ public class Environment implements Serializable
         }
         
         return out;
+    }
+    
+    public ArrayList<Card> getDiscardedPile() {
+        return state.getDiscardPile();
     }
 }
